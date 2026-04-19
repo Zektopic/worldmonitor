@@ -28,6 +28,9 @@ export enum PanelGateReason {
  */
 export function hasPremiumAccess(authState?: AuthSession): boolean {
   if (getSecretState('WORLDMONITOR_API_KEY').present) return true;
+  // VITE_FORCE_PRO is already folded into isProUser() via widget-store, but
+  // guard here too so this function is self-contained and testable in isolation.
+  if (import.meta.env.VITE_FORCE_PRO === 'true') return true;
   if (isProUser()) return true;
   if (authState?.user?.role === 'pro') return true;
   return false;

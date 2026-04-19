@@ -169,6 +169,12 @@ export function isProWidgetEnabled(): boolean {
 }
 
 export function isProUser(): boolean {
+  // VITE_FORCE_PRO=true bypasses all entitlement checks for deployment debugging.
+  // Never set this in production — it grants Pro access to all visitors.
+  if (import.meta.env.VITE_FORCE_PRO === 'true') {
+    console.warn('[pro] VITE_FORCE_PRO is enabled — all users have Pro access (debug mode)');
+    return true;
+  }
   return (
     isWidgetFeatureEnabled() ||
     isProWidgetEnabled() ||

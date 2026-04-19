@@ -58,6 +58,12 @@ export async function initEntitlementSubscription(_userId?: string): Promise<voi
     const authed = await waitForConvexAuth(10_000);
     if (!authed) {
       console.log('[entitlements] Convex auth not established — skipping subscription');
+      if (import.meta.env.DEV || import.meta.env.VITE_FORCE_PRO === 'true') {
+        console.warn(
+          '[entitlements] Debug hint: ensure VITE_CONVEX_URL and VITE_CLERK_PUBLISHABLE_KEY are set ' +
+          'in your deployment. Set VITE_FORCE_PRO=true to bypass entitlement checks temporarily.',
+        );
+      }
       return;
     }
 
@@ -65,7 +71,21 @@ export async function initEntitlementSubscription(_userId?: string): Promise<voi
       api.entitlements.getEntitlementsForUser,
       {},
       (result: EntitlementState | null) => {
+        const prev = currentState;
         currentState = result;
+        if (import.meta.env.DEV || import.meta.env.VITE_FORCE_PRO === 'true') {
+          const entitled = isEntitled();
+          console.log(
+            '[entitlements] Snapshot received — planKey=%s tier=%d validUntil=%s entitled=%s',
+            result?.planKey ?? 'null',
+            result?.features?.tier ?? 0,
+            result ? new Date(result.validUntil).toISOString() : 'n/a',
+            String(entitled),
+          );
+          if (prev === null && result !== null) {
+            console.log('[entitlements] First snapshot landed — isEntitled()=%s', String(entitled));
+          }
+        }
         for (const cb of listeners) cb(result);
       },
       (err: Error) => {
