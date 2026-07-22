@@ -131,9 +131,10 @@ describe('headline deduplication', () => {
       'Russia launches missile strike on Ukrainian energy infrastructure overnight',
       'EU approves new sanctions package against Russia',
     ];
-    // Words >= 4 chars for headline 1: russia, launches, missile, strike, ukrainian, energy, infrastructure, targets (8)
-    // Words >= 4 chars for headline 2: russia, launches, missile, strike, ukrainian, energy, infrastructure, overnight (8)
-    // Intersection: 7/8 = 0.875 > 0.6 threshold
+    // #4919: similarity now comes from shared/story-identity.js (dual-view
+    // cosine >= STORY_SIMILARITY_THRESHOLD) — a one-token tail swap on an
+    // otherwise identical headline is squarely inside the edit-variant
+    // class it must merge.
     const result = deduplicateHeadlines(headlines);
     assert.equal(result.length, 2, 'Should deduplicate near-identical headlines');
     assert.equal(result[0], headlines[0], 'Should keep the first occurrence');
@@ -292,12 +293,11 @@ describe('getSimulationOutcome handler', () => {
       'Type guard should verify theaterCount is a number');
   });
 
-  it('returns found:true with all pointer fields on success', () => {
+  it('returns found:true without exposing the internal outcome storage key', () => {
     assert.match(src, /found:\s*true/,
       'Success path should return found: true');
-    // Must propagate all pointer fields
-    assert.match(src, /outcomeKey:\s*pointer\.outcomeKey/,
-      'Success path should include outcomeKey from pointer');
+    assert.doesNotMatch(src, /outcomeKey:\s*pointer\.outcomeKey/,
+      'Public response must not include outcomeKey from pointer');
     assert.match(src, /theaterCount:\s*pointer\.theaterCount/,
       'Success path should include theaterCount from pointer');
   });

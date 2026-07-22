@@ -28,6 +28,15 @@ const v8 = require('v8');
 const { WebSocketServer, WebSocket } = require('ws');
 const { parseProxyConfig, resolveProxyString } = require('./_proxy-utils.cjs');
 const { countryNameToIso2 } = require('./shared/country-name-to-iso2.cjs');
+const {
+  buildDedupMaterial,
+  classifySetNxResult,
+  recordDedupOutcome,
+} = require('./shared/notification-dedup.cjs');
+const { maintainClosedMarketEquityKeys: maintainClosedMarketEquityKeysWithDeps } = require('./shared/closed-market-equity-maintenance.cjs');
+const { getUsEquitySession, isMultiMarketEquityTradingDay } = require('./shared/market-hours.cjs');
+const { mergeLastGoodQuotes, planYahooRefresh } = require('./shared/market-quote-refresh.cjs');
+const chinaCountryStockIndexHelpersPromise = import('./_country-stock-index.mjs');
 const parseProxyUrl = parseProxyConfig;
 
 const httpsKeepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 6, timeout: 60_000 });
@@ -197,20 +206,38 @@ if (RELAY_SHARED_SECRET && ALLOW_UNAUTHENTICATED_RELAY) {
 // ─────────────────────────────────────────────────────────────
 const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL || '';
 const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+// Self-hosted deployments front Redis with a plain-http REST proxy
+// (docker/redis-rest-proxy.mjs) reachable only inside the compose network —
+// there's no TLS to terminate and no public exposure, so the https-only
+// requirement below (which exists to stop a *real* Upstash bearer token from
+// transiting the public internet in cleartext) doesn't apply there. This
+// gate stayed https-only after the local proxy shipped, so every seed loop
+// in this file silently no-ops against http://redis-rest:80 (see
+// SELF_HOSTING.md's redis-rest command allowlist note + 4+ days of
+// "[TransitSummary]"/"[CorridorRisk]"/etc. never firing).
+// UPSTASH_ALLOW_INSECURE_HTTP is an explicit, off-by-default opt-in (never
+// inferred from hostname/URL shape) so a genuine Upstash misconfiguration in
+// production can't silently downgrade to plaintext.
+const UPSTASH_ALLOW_INSECURE_HTTP = process.env.UPSTASH_ALLOW_INSECURE_HTTP === 'true';
 const UPSTASH_ENABLED = !!(
   UPSTASH_REDIS_REST_URL &&
   UPSTASH_REDIS_REST_TOKEN &&
-  UPSTASH_REDIS_REST_URL.startsWith('https://')
+  (UPSTASH_REDIS_REST_URL.startsWith('https://') ||
+    (UPSTASH_ALLOW_INSECURE_HTTP && UPSTASH_REDIS_REST_URL.startsWith('http://')))
 );
+// Node's https module can't speak to a plain-http endpoint — resolve the
+// matching client once at startup instead of hardcoding https.request at
+// each upstash* call site below.
+const UPSTASH_HTTP_MODULE = UPSTASH_REDIS_REST_URL.startsWith('http://') ? http : https;
 const RELAY_ENV_PREFIX = process.env.RELAY_ENV ? `${process.env.RELAY_ENV}:` : '';
 const OREF_REDIS_KEY = `${RELAY_ENV_PREFIX}relay:oref:history:v1`;
 const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
-if (UPSTASH_REDIS_REST_URL && !UPSTASH_REDIS_REST_URL.startsWith('https://')) {
-  console.warn('[Relay] UPSTASH_REDIS_REST_URL must start with https:// — Redis disabled');
+if (UPSTASH_REDIS_REST_URL && !UPSTASH_REDIS_REST_URL.startsWith('https://') && !UPSTASH_ALLOW_INSECURE_HTTP) {
+  console.warn('[Relay] UPSTASH_REDIS_REST_URL must start with https:// — Redis disabled (set UPSTASH_ALLOW_INSECURE_HTTP=true for a trusted internal http proxy)');
 }
 if (UPSTASH_ENABLED) {
-  console.log(`[Relay] Upstash Redis enabled (key: ${OREF_REDIS_KEY})`);
+  console.log(`[Relay] Upstash Redis enabled (key: ${OREF_REDIS_KEY}${UPSTASH_REDIS_REST_URL.startsWith('http://') ? ', insecure-http opt-in' : ''})`);
 }
 
 function upstashGet(key, onFailure) {
@@ -229,7 +256,7 @@ function upstashGet(key, onFailure) {
       resolve(null);
     };
     const url = new URL(`/get/${encodeURIComponent(key)}`, UPSTASH_REDIS_REST_URL);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}` },
       timeout: 5000,
@@ -267,7 +294,7 @@ function upstashSet(key, value, ttlSeconds) {
     if (!UPSTASH_ENABLED) return resolve(false);
     const url = new URL('/', UPSTASH_REDIS_REST_URL);
     const body = JSON.stringify(['SET', key, JSON.stringify(value), 'EX', String(ttlSeconds)]);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -295,7 +322,7 @@ function upstashExpire(key, ttlSeconds) {
     if (!UPSTASH_ENABLED) return resolve(false);
     const url = new URL('/', UPSTASH_REDIS_REST_URL);
     const body = JSON.stringify(['EXPIRE', key, String(ttlSeconds)]);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -323,7 +350,7 @@ function upstashMGet(keys) {
     if (!UPSTASH_ENABLED || keys.length === 0) return resolve([]);
     const url = new URL('/pipeline', UPSTASH_REDIS_REST_URL);
     const body = JSON.stringify(keys.map((k) => ['GET', k]));
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -359,7 +386,7 @@ function upstashLpush(key, value) {
     const url = new URL('/', UPSTASH_REDIS_REST_URL);
     const serialized = typeof value === 'string' ? value : JSON.stringify(value);
     const body = JSON.stringify(['LPUSH', key, serialized]);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -384,11 +411,11 @@ function upstashLpush(key, value) {
 
 function upstashSetNx(key, value, ttlSeconds) {
   return new Promise((resolve) => {
-    if (!UPSTASH_ENABLED) return resolve(null);
+    if (!UPSTASH_ENABLED) return resolve('disabled');
     const url = new URL('/', UPSTASH_REDIS_REST_URL);
     const serialized = typeof value === 'string' ? value : JSON.stringify(value);
     const body = JSON.stringify(['SET', key, serialized, 'NX', 'EX', String(ttlSeconds)]);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -401,12 +428,12 @@ function upstashSetNx(key, value, ttlSeconds) {
       resp.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          resolve(parsed?.result === 'OK' ? 'OK' : null);
-        } catch { resolve(null); }
+          resolve(classifySetNxResult(parsed?.result));
+        } catch { resolve('error'); }
       });
     });
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on('error', () => resolve('error'));
+    req.on('timeout', () => { req.destroy(); resolve('error'); });
     req.end(body);
   });
 }
@@ -497,7 +524,7 @@ function upstashDel(key) {
     if (!UPSTASH_ENABLED) return resolve(false);
     const url = new URL('/', UPSTASH_REDIS_REST_URL);
     const body = JSON.stringify(['DEL', key]);
-    const req = https.request(url, {
+    const req = UPSTASH_HTTP_MODULE.request(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
@@ -554,8 +581,8 @@ function envelopeWrite(key, data, ttlSeconds, meta) {
 // passes legacy shapes through unchanged. MUST be used for any seeded canonical
 // key — reading raw via upstashGet() on an enveloped key iterates {_seed, data}
 // as payload keys and silently corrupts downstream consumers.
-async function envelopeRead(key) {
-  const raw = await upstashGet(key);
+async function envelopeRead(key, onFailure) {
+  const raw = await upstashGet(key, onFailure);
   if (raw && typeof raw === 'object' && !Array.isArray(raw) && '_seed' in raw && 'data' in raw) {
     return raw.data;
   }
@@ -570,6 +597,11 @@ function notifySimpleHash(str) {
 
 function normalizeNotificationCountryCode(raw) {
   return countryNameToIso2(raw) ?? undefined;
+}
+
+function marketAlertCoalesceKey(assetClass, identifier, direction, severity) {
+  const stableIdentifier = String(identifier || 'unknown').trim().toLowerCase();
+  return `market:${assetClass}:${stableIdentifier}:${direction}:${severity}`;
 }
 
 /**
@@ -608,19 +640,26 @@ async function publishNotificationEvent({ eventType, payload, severity, variant,
     // event collapse at the publisher (queue stays clean) instead of N times
     // per recipient at the relay.
     const variantSuffix = variant ? `:${variant}` : '';
-    const dedupMaterial = payload?.coalesceKey
-      ? `coalesce:${payload.coalesceKey}`
-      : `${eventType}:${payload.title ?? ''}`;
+    const dedupMaterial = buildDedupMaterial(eventType, payload?.title, payload?.coalesceKey);
     const dedupKey = `wm:notif:scan-dedup:${eventType}${variantSuffix}:${notifySimpleHash(dedupMaterial)}`;
-    const isNew = await upstashSetNx(dedupKey, '1', dedupTtl);
-    if (!isNew) {
+    const dedupResult = await upstashSetNx(dedupKey, '1', dedupTtl);
+    const dedupDecision = recordDedupOutcome(dedupResult, {
+      surface: 'ais-relay',
+      eventType,
+      severity,
+      fallbackKey: dedupKey,
+      fallbackTtlSeconds: dedupTtl,
+      emitTelemetry: recordNotificationDedupSetNxError,
+    });
+    if (!dedupDecision.shouldPublish) {
+      if (!dedupDecision.isDuplicate) return;
       console.log(`[Notify] Dedup hit — ${eventType}: ${String(payload.title ?? '').slice(0, 60)}`);
       return;
     }
-    const msg = JSON.stringify({ eventType, payload, severity, ...(variant ? { variant } : {}), publishedAt: Date.now() });
+    const msg = JSON.stringify({ eventType, payload, severity: dedupDecision.severity, ...(variant ? { variant } : {}), publishedAt: Date.now() });
     const ok = await upstashLpush('wm:events:queue', msg);
     if (ok) {
-      console.log(`[Notify] Queued ${severity} event: ${eventType} — ${String(payload.title ?? '').slice(0, 60)}`);
+      console.log(`[Notify] Queued ${dedupDecision.severity} event: ${eventType} — ${String(payload.title ?? '').slice(0, 60)}`);
     } else {
       // Rollback the dedup key so the next poll cycle can retry — avoids silent
       // suppression for the full dedupTtl when a transient LPUSH fails.
@@ -1858,14 +1897,17 @@ async function startSatelliteSeedLoop() {
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '';
 const MARKET_SEED_INTERVAL_MS = 300_000; // 5 min
 const MARKET_SEED_TTL = 7200; // 2h — survive extended Yahoo/upstream outages
+const _configuredYahooRefreshIntervalMs = Number(process.env.MARKET_YAHOO_REFRESH_INTERVAL_MS);
+const MARKET_YAHOO_REFRESH_INTERVAL_MS = Math.max(
+  MARKET_SEED_INTERVAL_MS,
+  Number.isFinite(_configuredYahooRefreshIntervalMs) && _configuredYahooRefreshIntervalMs > 0
+    ? _configuredYahooRefreshIntervalMs
+    : 900_000,
+);
 
-// Must match src/config/markets.ts MARKET_SYMBOLS — update both when changing
-const MARKET_SYMBOLS = [
-  'AAPL', 'AMZN', 'AVGO', 'BAC', 'BRK-B', 'COST', 'GOOGL', 'HD',
-  'JNJ', 'JPM', 'LLY', 'MA', 'META', 'MSFT', 'NFLX', 'NVO', 'NVDA',
-  'ORCL', 'PG', 'TSLA', 'TSM', 'UNH', 'V', 'WMT', 'XOM',
-  '^DJI', '^GSPC', '^IXIC', '^RUT',
-];
+const _stockCfg = requireShared('stocks.json');
+const MARKET_SYMBOLS = _stockCfg.symbols.map((s) => s.symbol);
+const MARKET_META = new Map(_stockCfg.symbols.map((s) => [s.symbol, { name: s.name, display: s.display }]));
 
 const _commodityCfg = requireShared('commodities.json');
 const COMMODITY_SYMBOLS = _commodityCfg.commodities.map(c => c.symbol);
@@ -1873,11 +1915,10 @@ const COMMODITY_META = new Map(_commodityCfg.commodities.map(c => [c.symbol, { n
 
 const SECTOR_SYMBOLS = ['XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'XLI', 'XLP', 'XLU', 'XLB', 'XLRE', 'XLC', 'SMH'];
 
-// Symbols that must come from Yahoo — Finnhub doesn't carry futures (=F) or major indices.
-// ^GSPC/^DJI/^IXIC live in MARKET_SYMBOLS (not COMMODITY_SYMBOLS) so they must be listed
-// explicitly; commodity ETFs (URA, LIT) also go through Yahoo since they have no Finnhub feed.
+// Symbols that must come from Yahoo — Finnhub doesn't carry futures (=F),
+// major indices, or the exchange-qualified Asian symbols in stocks.json.
 const YAHOO_ONLY = new Set([
-  '^GSPC', '^DJI', '^IXIC', '^RUT',
+  ..._stockCfg.yahooOnly,
   ...COMMODITY_SYMBOLS.filter(s => s.endsWith('=F') || s.startsWith('^')),
   'URA', 'LIT',
   // Spot gold and forex pairs (=X suffix) — not on Finnhub
@@ -1908,9 +1949,9 @@ let _yahooConnectProxyCooldownUntil = 0;
 let _yahooCurlProxyFailCount = 0;      // fetchYahooQuoteSummary via us.decodo.com (curl)
 let _yahooCurlProxyCooldownUntil = 0;
 
-function _fetchYahooChartNoProxy(symbol) {
+function _fetchYahooChartNoProxy(symbol, query = '') {
   return new Promise((resolve) => {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}${query}`;
     const req = https.get(url, {
       headers: { 'User-Agent': CHROME_UA, Accept: 'application/json' },
       timeout: 10000,
@@ -1929,13 +1970,13 @@ function _fetchYahooChartNoProxy(symbol) {
   });
 }
 
-function fetchYahooChartDirect(symbol) {
-  return _fetchYahooChartNoProxy(symbol).then((result) => {
+function fetchYahooChartDirect(symbol, query = '') {
+  return _fetchYahooChartNoProxy(symbol, query).then((result) => {
     if (result) return result;
     if (!PROXY_URL) return null;
     if (Date.now() < _yahooConnectProxyCooldownUntil) return null;
     const proxy = { ...parseProxyUrl(PROXY_URL), tls: true };
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}${query}`;
     return ytFetchViaProxy(url, proxy).then((resp) => {
       if (!resp?.ok) {
         _yahooConnectProxyFailCount++;
@@ -2102,8 +2143,50 @@ function fetchFinnhubQuoteDirect(symbol, apiKey) {
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+// #4922d closed-market equity gate. Last quote count published by
+// seedMarketQuotes — reused to refresh seed-meta freshness while skipping.
+let _lastEquityQuoteCount = 0;
+let _lastYahooMarketRefreshAt = 0;
+// Log once per open↔closed transition, not every 5-minute cycle.
+let _equityGateLoggedClosed = false;
+const CHINA_COUNTRY_STOCK_SYMBOL = '000001.SS';
+
+// When every tracked equity market is on a non-trading day, skip the equity
+// fetch+publish and instead
+// keep the last-good equity and companion keys alive: extend their TTLs and
+// refresh seed-meta:market:stocks fetchedAt so /api/health (maxStaleMin 30)
+// stays green across a 60h+ weekend. Returns true when last-good was
+// preserved; false means the keys are missing/expired and the caller must
+// fall back to a real fetch to repopulate.
+async function maintainClosedMarketEquityKeys() {
+  const { CHINA_COUNTRY_STOCK_INDEX_KEY } = await chinaCountryStockIndexHelpersPromise;
+  return maintainClosedMarketEquityKeysWithDeps({
+    marketSymbols: MARKET_SYMBOLS,
+    marketSeedTtl: MARKET_SEED_TTL,
+    lastEquityQuoteCount: _lastEquityQuoteCount,
+    upstashExpire,
+    upstashGet,
+    upstashSet,
+    nowMs: () => Date.now(),
+    preserveKeys: [CHINA_COUNTRY_STOCK_INDEX_KEY],
+  });
+}
+
+async function writeChinaCountryStockIndex() {
+  const {
+    CHINA_COUNTRY_STOCK_INDEX_KEY,
+    buildCountryStockIndexSnapshotFromCloses,
+  } = await chinaCountryStockIndexHelpersPromise;
+  const chart = await fetchYahooChartDirect(CHINA_COUNTRY_STOCK_SYMBOL, '?range=1mo&interval=1d');
+  const snapshot = buildCountryStockIndexSnapshotFromCloses(chart?.sparkline, 'CNY');
+  if (!snapshot) throw new Error('China country index returned insufficient daily closes');
+  const written = await upstashSet(CHINA_COUNTRY_STOCK_INDEX_KEY, snapshot, MARKET_SEED_TTL);
+  if (!written) throw new Error('China country index Redis write failed');
+}
+
 async function seedMarketQuotes() {
-  const quotes = [];
+  const previousPayloadPromise = envelopeRead('market:stocks-bootstrap:v1');
+  const freshQuotes = [];
   const finnhubSymbols = MARKET_SYMBOLS.filter((s) => !YAHOO_ONLY.has(s));
   const yahooSymbols = MARKET_SYMBOLS.filter((s) => YAHOO_ONLY.has(s));
 
@@ -2111,27 +2194,44 @@ async function seedMarketQuotes() {
     const results = await Promise.all(finnhubSymbols.map((s) => fetchFinnhubQuoteDirect(s, FINNHUB_API_KEY)));
     for (let i = 0; i < finnhubSymbols.length; i++) {
       const r = results[i];
-      if (r) quotes.push({ symbol: finnhubSymbols[i], name: finnhubSymbols[i], display: finnhubSymbols[i], price: r.price, change: r.changePercent, sparkline: [] });
+      const symbol = finnhubSymbols[i];
+      const meta = MARKET_META.get(symbol);
+      if (r) freshQuotes.push({ symbol, name: meta?.name || symbol, display: meta?.display || symbol, price: r.price, change: r.changePercent, sparkline: [] });
     }
   }
 
   const missedFinnhub = FINNHUB_API_KEY
-    ? finnhubSymbols.filter((s) => !quotes.some((q) => q.symbol === s))
+    ? finnhubSymbols.filter((s) => !freshQuotes.some((q) => q.symbol === s))
     : finnhubSymbols;
-  const allYahoo = [...yahooSymbols, ...missedFinnhub];
+  const yahooPlan = planYahooRefresh({
+    mandatoryYahooSymbols: yahooSymbols,
+    missedPrimarySymbols: missedFinnhub,
+    nowMs: Date.now(),
+    lastRefreshAt: _lastYahooMarketRefreshAt,
+    refreshIntervalMs: MARKET_YAHOO_REFRESH_INTERVAL_MS,
+  });
+  const allYahoo = yahooPlan.symbols;
+  if (yahooPlan.due) _lastYahooMarketRefreshAt = Date.now();
+  const freshCountBeforeYahoo = freshQuotes.length;
 
   for (const s of allYahoo) {
-    if (quotes.some((q) => q.symbol === s)) continue;
+    if (freshQuotes.some((q) => q.symbol === s)) continue;
     const yahoo = await fetchYahooChartDirect(s);
-    if (yahoo) quotes.push({ symbol: s, name: s, display: s, price: yahoo.price, change: yahoo.change, sparkline: yahoo.sparkline });
+    const meta = MARKET_META.get(s);
+    if (yahoo) freshQuotes.push({ symbol: s, name: meta?.name || s, display: meta?.display || s, price: yahoo.price, change: yahoo.change, sparkline: yahoo.sparkline });
     await sleep(150);
   }
 
-  if (quotes.length === 0) {
+  if (freshQuotes.length === 0) {
     console.warn('[Market] No quotes fetched — skipping Redis write');
     return 0;
   }
 
+  const previousPayload = await previousPayloadPromise;
+  const previousQuotes = Array.isArray(previousPayload?.quotes) ? previousPayload.quotes : [];
+  const quotes = mergeLastGoodQuotes(MARKET_SYMBOLS, freshQuotes, previousQuotes);
+  const retainedCount = quotes.length - freshQuotes.length;
+  const yahooSuccessCount = freshQuotes.length - freshCountBeforeYahoo;
   const coveredByYahoo = finnhubSymbols.every((s) => quotes.some((q) => q.symbol === s));
   const skipped = !FINNHUB_API_KEY && !coveredByYahoo;
   const payload = { quotes, finnhubSkipped: skipped, skipReason: skipped ? 'FINNHUB_API_KEY not configured' : '', rateLimited: false };
@@ -2140,15 +2240,28 @@ async function seedMarketQuotes() {
   // Bootstrap-friendly fixed key — frontend hydrates from /api/bootstrap without RPC
   const ok2 = await envelopeWrite('market:stocks-bootstrap:v1', payload, MARKET_SEED_TTL, { recordCount: quotes.length, sourceVersion: 'market-stocks' });
   const ok3 = await upstashSet('seed-meta:market:stocks', { fetchedAt: Date.now(), recordCount: quotes.length }, 604800);
-  console.log(`[Market] Seeded ${quotes.length}/${MARKET_SYMBOLS.length} quotes (redis: ${ok && ok2 && ok3 ? 'OK' : 'PARTIAL'})`);
+  if (freshQuotes.some((quote) => quote.symbol === CHINA_COUNTRY_STOCK_SYMBOL)) {
+    try {
+      await writeChinaCountryStockIndex();
+    } catch (err) {
+      console.warn(`[Market] China country index refresh failed: ${err.message}`);
+    }
+  }
+  _lastEquityQuoteCount = quotes.length;
+  console.log(`[Market] Seeded ${quotes.length}/${MARKET_SYMBOLS.length} quotes (${freshQuotes.length} fresh, ${retainedCount} retained; Yahoo ${yahooSuccessCount}/${allYahoo.length}, cadence ${MARKET_YAHOO_REFRESH_INTERVAL_MS / 60000}min; redis: ${ok && ok2 && ok3 ? 'OK' : 'PARTIAL'})`);
   const movingStocks = quotes.filter(q => Math.abs(q.change ?? 0) >= 5).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
   for (const q of movingStocks.slice(0, 3)) {
     const pct = Math.round(q.change);
     const dir = q.change < 0 ? 'decline' : 'surge';
+    const severity = Math.abs(q.change) >= 10 ? 'critical' : 'high';
     publishNotificationEvent({
       eventType: 'market_alert',
-      payload: { title: `${q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`, source: 'Equity Market' },
-      severity: Math.abs(q.change) >= 10 ? 'critical' : 'high',
+      payload: {
+        title: `${q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`,
+        source: 'Equity Market',
+        coalesceKey: marketAlertCoalesceKey('equity', q.symbol, dir, severity),
+      },
+      severity,
       variant: undefined,
       dedupTtl: 3600,
     }).catch(e => console.warn('[Notify] Market stock publish error:', e?.message));
@@ -2199,10 +2312,15 @@ async function seedCommodityQuotes() {
   for (const q of movingCommodities.slice(0, 3)) {
     const pct = Math.round(q.change);
     const dir = q.change < 0 ? 'decline' : 'surge';
+    const severity = Math.abs(q.change) >= 10 ? 'critical' : 'high';
     publishNotificationEvent({
       eventType: 'market_alert',
-      payload: { title: `${q.name || q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`, source: 'Commodity Market' },
-      severity: Math.abs(q.change) >= 10 ? 'critical' : 'high',
+      payload: {
+        title: `${q.name || q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`,
+        source: 'Commodity Market',
+        coalesceKey: marketAlertCoalesceKey('commodity', q.symbol || q.name, dir, severity),
+      },
+      severity,
       variant: undefined,
       dedupTtl: 3600,
     }).catch(e => console.warn('[Notify] Commodity publish error:', e?.message));
@@ -2454,13 +2572,27 @@ async function fetchCryptoCoinPaprika() {
   }));
 }
 
+// CoinGecko's free Demo and paid Pro plans share the `CG-` key prefix but use
+// different hosts + auth headers (a Demo key on the Pro host 400s). Resolve the
+// tier explicitly by which env var is set — Pro wins, else Demo, else keyless.
+// Mirrors scripts/_seed-utils.mjs `coingeckoEndpoint()`; this relay is CommonJS
+// and cannot import the .mjs helper, so the logic is duplicated.
+function coingeckoEndpoint() {
+  const proKey = process.env.COINGECKO_API_KEY;
+  const demoKey = process.env.COINGECKO_DEMO_API_KEY;
+  const headers = { Accept: 'application/json' };
+  if (proKey) {
+    headers['x-cg-pro-api-key'] = proKey;
+    return { base: 'https://pro-api.coingecko.com/api/v3', headers };
+  }
+  if (demoKey) headers['x-cg-demo-api-key'] = demoKey;
+  return { base: 'https://api.coingecko.com/api/v3', headers };
+}
+
 async function seedCryptoQuotes() {
   let data;
   try {
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const base = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
-    const headers = { Accept: 'application/json' };
-    if (apiKey) headers['x-cg-pro-api-key'] = apiKey;
+    const { base, headers } = coingeckoEndpoint();
     const url = `${base}/coins/markets?vs_currency=usd&ids=${CRYPTO_IDS.join(',')}&order=market_cap_desc&sparkline=true&price_change_percentage=24h`;
     data = await cyberHttpGetJson(url, headers, 15000);
     if (!Array.isArray(data) || data.length === 0) throw new Error('CoinGecko returned no data');
@@ -2484,10 +2616,15 @@ async function seedCryptoQuotes() {
   for (const q of movingCrypto.slice(0, 3)) {
     const pct = Math.round(q.change);
     const dir = q.change < 0 ? 'decline' : 'surge';
+    const severity = Math.abs(q.change) >= 20 ? 'critical' : 'high';
     publishNotificationEvent({
       eventType: 'market_alert',
-      payload: { title: `${q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`, source: 'Crypto Market' },
-      severity: Math.abs(q.change) >= 20 ? 'critical' : 'high',
+      payload: {
+        title: `${q.symbol}: ${pct > 0 ? '+' : ''}${pct}% ${dir}`,
+        source: 'Crypto Market',
+        coalesceKey: marketAlertCoalesceKey('crypto', q.symbol || q.name, dir, severity),
+      },
+      severity,
       variant: undefined,
       dedupTtl: 3600,
     }).catch(e => console.warn('[Notify] Crypto publish error:', e?.message));
@@ -2517,10 +2654,7 @@ async function fetchStablecoinCoinPaprika() {
 async function seedStablecoinMarkets() {
   let data;
   try {
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const base = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
-    const headers = { Accept: 'application/json' };
-    if (apiKey) headers['x-cg-pro-api-key'] = apiKey;
+    const { base, headers } = coingeckoEndpoint();
     const url = `${base}/coins/markets?vs_currency=usd&ids=${STABLECOIN_IDS}&order=market_cap_desc&sparkline=false&price_change_percentage=7d`;
     data = await cyberHttpGetJson(url, headers, 15000);
     if (!Array.isArray(data) || data.length === 0) throw new Error('CoinGecko returned no data');
@@ -2553,10 +2687,7 @@ async function seedCryptoSectors() {
   const allIds = [...new Set(SECTORS_LIST.flatMap((s) => s.tokens))];
   let data;
   try {
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const base = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
-    const headers = { Accept: 'application/json' };
-    if (apiKey) headers['x-cg-pro-api-key'] = apiKey;
+    const { base, headers } = coingeckoEndpoint();
     const url = `${base}/coins/markets?vs_currency=usd&ids=${allIds.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`;
     data = await cyberHttpGetJson(url, headers, 15000);
     if (!Array.isArray(data) || data.length === 0) throw new Error('CoinGecko returned no data');
@@ -2626,10 +2757,7 @@ async function seedTokenPanels() {
   const allIds = [...new Set([..._defiCfg.ids, ..._aiCfg.ids, ..._otherCfg.ids])];
   let data;
   try {
-    const apiKey = process.env.COINGECKO_API_KEY;
-    const base = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
-    const headers = { Accept: 'application/json' };
-    if (apiKey) headers['x-cg-pro-api-key'] = apiKey;
+    const { base, headers } = coingeckoEndpoint();
     const url = `${base}/coins/markets?vs_currency=usd&ids=${allIds.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d`;
     data = await cyberHttpGetJson(url, headers, 15000);
     if (!Array.isArray(data) || data.length === 0) throw new Error('CoinGecko returned no data');
@@ -2675,9 +2803,38 @@ async function seedTokenPanels() {
   return total;
 }
 
-async function seedAllMarketData() {
+let _marketSeedRun = null;
+
+function seedAllMarketData() {
+  if (_marketSeedRun) {
+    console.warn('[Market] Prior seed still running — joining it instead of starting an overlapping refresh');
+    return _marketSeedRun;
+  }
+  _marketSeedRun = seedAllMarketDataOnce().finally(() => { _marketSeedRun = null; });
+  return _marketSeedRun;
+}
+
+async function seedAllMarketDataOnce() {
   const t0 = Date.now();
-  const q = await seedMarketQuotes();
+  // Equity gate (#4922d): shared dead days skip the stocks fetch+publish.
+  // Crypto (24/7), commodities, gulf, ETF and token panels are untouched.
+  let q = 0;
+  let equitySkipped = false;
+  if (!isMultiMarketEquityTradingDay()) {
+    equitySkipped = await maintainClosedMarketEquityKeys();
+    if (equitySkipped) {
+      if (!_equityGateLoggedClosed) {
+        console.log(`[Market] Tracked equity markets closed (US session=${getUsEquitySession()}) — skipping equity fetch, extended TTL on last-good keys`);
+        _equityGateLoggedClosed = true;
+      }
+    } else {
+      console.warn('[Market] Tracked equity markets closed but last-good equity keys missing — fetching anyway');
+    }
+  } else if (_equityGateLoggedClosed) {
+    console.log(`[Market] Tracked equity refresh resumed (US session=${getUsEquitySession()})`);
+    _equityGateLoggedClosed = false;
+  }
+  if (!equitySkipped) q = await seedMarketQuotes();
   const c = await seedCommodityQuotes();
   const s = await seedSectorSummary();
   const g = await seedGulfQuotes();
@@ -3542,11 +3699,13 @@ function matchCountryNamesInText(text) {
 // three sites.
 function classifyCacheKey(title) {
   const hash = crypto.createHash('sha256').update(title.toLowerCase()).digest('hex').slice(0, 16);
-  return `classify:sebuf:v5:${hash}`;
+  return `classify:sebuf:v6:${hash}`;
 }
 
 // LLM provider fallback chain — mirrors seed-insights.mjs LLM_PROVIDERS
-// Order: ollama → groq → openrouter (canonical chain, mirrors server/_shared/llm.ts)
+// Order: ollama → openrouter → groq (canonical chain since #4944, mirrors
+// server/_shared/llm.ts: DeepSeek V4 Flash primary with reasoning disabled,
+// groq llama-3.3-70b-versatile as the free-tier/outage fallback).
 const CLASSIFY_LLM_PROVIDERS = [
   {
     name: 'ollama',
@@ -3563,19 +3722,20 @@ const CLASSIFY_LLM_PROVIDERS = [
     timeout: 30000,
   },
   {
-    name: 'groq',
-    envKey: 'GROQ_API_KEY',
-    apiUrl: 'https://api.groq.com/openai/v1/chat/completions',
-    model: 'llama-3.1-8b-instant',
-    headers: (key) => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA }),
-    timeout: 30000,
-  },
-  {
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'google/gemini-2.5-flash',
+    model: 'deepseek/deepseek-v4-flash',
     headers: (key) => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor', 'User-Agent': CHROME_UA }),
+    extraBody: { reasoning: { enabled: false } },
+    timeout: 30000,
+  },
+  {
+    name: 'groq',
+    envKey: 'GROQ_API_KEY',
+    apiUrl: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'llama-3.3-70b-versatile',
+    headers: (key) => ({ Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'User-Agent': CHROME_UA }),
     timeout: 30000,
   },
 ];
@@ -6487,13 +6647,20 @@ const DODO_PRODUCT_IDS = [
   'pdt_0NbttMIfjLWC10jHQWYgJ', // Pro Annual
   'pdt_0NbttVmG1SERrxhygbbUq', // API Starter Monthly
   'pdt_0Nbu2lawHYE3dv2THgSEV', // API Starter Annual
+  'pdt_0Nbttg7NuOJrhbyBGCius', // API Business Monthly (#4945)
 ];
 
+// ⚠ MANUAL MIRROR of TIER_CONFIG in api/product-catalog.js (and ultimately
+// convex/config/productCatalog.ts marketingFeatures). This seeder's Redis
+// payload is the PRIMARY live catalog — it wins over the edge fallback on
+// cache hits — so drift here silently changes the /pro pricing page (#4946
+// P0, #4974). Parity enforced by tests/product-catalog-freshness.test.mjs.
 const DODO_TIER_CONFIG = {
-  free: { name: 'Free', description: 'Get started with the essentials', features: ['Core dashboard panels', 'Global news feed', 'Earthquake & weather alerts', 'Basic map view'], cta: 'Get Started', href: 'https://worldmonitor.app', highlighted: false },
-  pro: { name: 'Pro', description: 'Full intelligence dashboard', features: ['Everything in Free', 'AI stock analysis & backtesting', 'Daily market briefs', 'Military & geopolitical tracking', 'Custom widget builder', 'MCP data connectors', 'Priority data refresh'], highlighted: true },
-  api_starter: { name: 'API', description: 'Programmatic access to intelligence data', features: ['REST API access', 'Real-time data streams', '1,000 requests/day', 'Webhook notifications', 'Custom data exports'], highlighted: false },
-  enterprise: { name: 'Enterprise', description: 'Custom solutions for organizations', features: ['Everything in Pro + API', 'Unlimited API requests', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'On-premise option'], cta: 'Contact Sales', href: 'mailto:enterprise@worldmonitor.app', highlighted: false },
+  free: { name: 'Free', localeKey: 'free', description: 'Get started with the essentials', features: ['Core dashboard panels', 'Global news feed', 'Earthquake & weather alerts', 'Basic map view'], cta: 'Get Started', href: 'https://worldmonitor.app/dashboard', highlighted: false },
+  pro: { name: 'Pro', localeKey: 'pro', description: 'Full intelligence dashboard', features: ['Everything in Free', 'AI stock analysis & backtesting', 'Daily market briefs', 'Military & geopolitical tracking', 'Custom widget builder', 'MCP + SDK access for Claude Desktop & other AI clients (50 calls/day)', 'Priority data refresh'], highlighted: true },
+  api_starter: { name: 'API', localeKey: 'api', description: 'Programmatic access to intelligence data', features: ['REST API + official SDKs (npm, PyPI, RubyGems, Go)', 'License / API key included', 'Real-time data streams', '60 requests/minute', '1,000 requests/day included', 'Webhook notifications', 'Custom data exports'], highlighted: false },
+  api_business: { name: 'API Business', localeKey: 'apiBusiness', description: 'High-volume API for teams', features: ['Everything in API Starter', '300 requests/minute', '10,000 requests/day included', 'Priority support'], highlighted: false },
+  enterprise: { name: 'Enterprise', localeKey: 'enterprise', description: 'Custom solutions for organizations', features: ['Everything in Pro + API', 'Unlimited API requests', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'On-premise option'], cta: 'Contact Sales', href: 'mailto:enterprise@worldmonitor.app', highlighted: false },
 };
 
 const DODO_PRODUCT_META = {
@@ -6501,6 +6668,7 @@ const DODO_PRODUCT_META = {
   'pdt_0NbttMIfjLWC10jHQWYgJ': { tierGroup: 'pro', billingPeriod: 'annual' },
   'pdt_0NbttVmG1SERrxhygbbUq': { tierGroup: 'api_starter', billingPeriod: 'monthly' },
   'pdt_0Nbu2lawHYE3dv2THgSEV': { tierGroup: 'api_starter', billingPeriod: 'annual' },
+  'pdt_0Nbttg7NuOJrhbyBGCius': { tierGroup: 'api_business', billingPeriod: 'monthly' },
 };
 
 const DODO_FALLBACK_PRICES = {
@@ -6508,6 +6676,7 @@ const DODO_FALLBACK_PRICES = {
   'pdt_0NbttMIfjLWC10jHQWYgJ': 39999,
   'pdt_0NbttVmG1SERrxhygbbUq': 9999,
   'pdt_0Nbu2lawHYE3dv2THgSEV': 99900,
+  'pdt_0Nbttg7NuOJrhbyBGCius': 24999,
 };
 
 let dodoPriceSeedInFlight = false;
@@ -6575,7 +6744,7 @@ async function seedDodoPrices() {
 
     // Build tier view model
     const tiers = [];
-    const publicGroups = ['free', 'pro', 'api_starter', 'enterprise'];
+    const publicGroups = ['free', 'pro', 'api_starter', 'api_business', 'enterprise'];
     for (const group of publicGroups) {
       const config = DODO_TIER_CONFIG[group];
       if (!config) continue;
@@ -6758,6 +6927,9 @@ const relayMetricsLifetime = {
   openskyMiss: 0,
   openskyUpstreamFetches: 0,
   drops: 0,
+  notificationDedupSetNxErrors: 0,
+  notificationDedupSetNxFailOpen: 0,
+  notificationDedupSetNxFailClosed: 0,
 };
 let relayMetricsQueueMaxLifetime = 0;
 let relayMetricsCurrentSec = 0;
@@ -6775,6 +6947,9 @@ function createRelayMetricsBucket() {
     openskyMiss: 0,
     openskyUpstreamFetches: 0,
     drops: 0,
+    notificationDedupSetNxErrors: 0,
+    notificationDedupSetNxFailOpen: 0,
+    notificationDedupSetNxFailClosed: 0,
     queueMax: 0,
   };
 }
@@ -6850,6 +7025,9 @@ function getRelayRollingMetrics() {
     rollup.openskyMiss += bucket.openskyMiss;
     rollup.openskyUpstreamFetches += bucket.openskyUpstreamFetches;
     rollup.drops += bucket.drops;
+    rollup.notificationDedupSetNxErrors += bucket.notificationDedupSetNxErrors;
+    rollup.notificationDedupSetNxFailOpen += bucket.notificationDedupSetNxFailOpen;
+    rollup.notificationDedupSetNxFailClosed += bucket.notificationDedupSetNxFailClosed;
     if (bucket.queueMax > rollup.queueMax) rollup.queueMax = bucket.queueMax;
   }
 
@@ -6878,6 +7056,11 @@ function getRelayRollingMetrics() {
       dropsPerSec: Number((rollup.drops / METRICS_WINDOW_SECONDS).toFixed(4)),
       upstreamPaused,
     },
+    notifications: {
+      dedupSetNxErrors: rollup.notificationDedupSetNxErrors,
+      dedupSetNxFailOpen: rollup.notificationDedupSetNxFailOpen,
+      dedupSetNxFailClosed: rollup.notificationDedupSetNxFailClosed,
+    },
     lifetime: {
       openskyRequests: relayMetricsLifetime.openskyRequests,
       openskyCacheHit: relayMetricsLifetime.openskyCacheHit,
@@ -6886,9 +7069,18 @@ function getRelayRollingMetrics() {
       openskyMiss: relayMetricsLifetime.openskyMiss,
       openskyUpstreamFetches: relayMetricsLifetime.openskyUpstreamFetches,
       drops: relayMetricsLifetime.drops,
+      notificationDedupSetNxErrors: relayMetricsLifetime.notificationDedupSetNxErrors,
+      notificationDedupSetNxFailOpen: relayMetricsLifetime.notificationDedupSetNxFailOpen,
+      notificationDedupSetNxFailClosed: relayMetricsLifetime.notificationDedupSetNxFailClosed,
       queueMax: relayMetricsQueueMaxLifetime,
     },
   };
+}
+
+function recordNotificationDedupSetNxError({ line, action }) {
+  incrementRelayMetric('notificationDedupSetNxErrors');
+  incrementRelayMetric(action === 'fail_open' ? 'notificationDedupSetNxFailOpen' : 'notificationDedupSetNxFailClosed');
+  console.warn(line);
 }
 
 // AIS aggregate state for snapshot API (server-side fanout)
@@ -7683,8 +7875,17 @@ function detectTrafficAnomalyRelay(history, threatLevel) {
 }
 
 async function seedTransitSummaries() {
-  const pw = await envelopeRead(PORTWATCH_REDIS_KEY);
-  if (!pw || typeof pw !== 'object' || Object.keys(pw).length === 0) return;
+  let pwFailureReason = null;
+  const pw = await envelopeRead(PORTWATCH_REDIS_KEY, (reason) => { pwFailureReason = reason; });
+  if (!pw || typeof pw !== 'object' || Object.keys(pw).length === 0) {
+    const reason = !UPSTASH_ENABLED
+      ? 'Upstash Redis disabled — see [Relay] startup warning (UPSTASH_REDIS_REST_URL/UPSTASH_ALLOW_INSECURE_HTTP)'
+      : pwFailureReason
+        ? `read failed: ${pwFailureReason}`
+        : 'key empty or absent — upstream seeder has not written it yet';
+    console.warn(`[TransitSummary] Skipped — ${PORTWATCH_REDIS_KEY} unavailable (${reason})`);
+    return;
+  }
 
   if (!latestCorridorRiskData) {
     const persisted = await envelopeRead(CORRIDOR_RISK_REDIS_KEY);
@@ -8156,7 +8357,12 @@ function _attemptOpenSkyTokenFetch(clientId, clientSecret) {
     return _openskyProxyConnect('auth.opensky-network.org', 443).then((tlsSocket) => {
       return new Promise((resolve) => {
         const req = https.request({
-          socket: tlsSocket,
+          // tlsSocket is ALREADY a TLS connection to the target — proxyConnectTunnel
+          // does tls.connect() through the CONNECT tunnel. Reuse it via
+          // createConnection (NOT `socket:`): `socket:` makes https.request wrap it
+          // in a SECOND TLS layer → EPROTO "wrong version number" (double-TLS),
+          // which fails every OpenSky auth attempt. Mirrors proxyFetch(). See #5074.
+          createConnection: () => tlsSocket,
           hostname: 'auth.opensky-network.org',
           path: '/auth/realms/opensky-network/protocol/openid-connect/token',
           method: 'POST',
@@ -8288,7 +8494,10 @@ function _openskyRawFetch(url, token) {
     return _openskyProxyConnect(parsed.hostname, 443, 15000).then((tlsSocket) => {
       return new Promise((resolve) => {
         const request = https.get({
-          socket: tlsSocket,
+          // Reuse the already-TLS tunnel socket via createConnection, not `socket:`
+          // — passing an already-TLS socket as `socket:` double-wraps TLS and throws
+          // EPROTO "wrong version number", failing every OpenSky states fetch. See #5074.
+          createConnection: () => tlsSocket,
           hostname: parsed.hostname,
           path: parsed.pathname + parsed.search,
           headers: reqHeaders,
@@ -10779,8 +10988,8 @@ function requireWidgetAgentAccess(req, res) {
 
   const providedKey = getWidgetAgentProvidedKey(req);
   const providedProKey = getWidgetAgentProvidedProKey(req);
-  const hasValidWidgetKey = status.widgetKeyConfigured && providedKey && providedKey === WIDGET_AGENT_KEY;
-  const hasValidProKey = status.proKeyConfigured && providedProKey && providedProKey === PRO_WIDGET_KEY;
+  const hasValidWidgetKey = Boolean(status.widgetKeyConfigured && providedKey && safeTokenEquals(providedKey, WIDGET_AGENT_KEY));
+  const hasValidProKey = Boolean(status.proKeyConfigured && providedProKey && safeTokenEquals(providedProKey, PRO_WIDGET_KEY));
   if (!hasValidWidgetKey && !hasValidProKey) {
     safeEnd(res, 403, { 'Content-Type': 'application/json' }, JSON.stringify({ ...status, error: 'Forbidden' }));
     return null;
@@ -10859,7 +11068,7 @@ async function handleWidgetAgentRequest(req, res) {
     }
     if (status.admittedAs !== 'pro') {
       const providedProKey = getWidgetAgentProvidedProKey(req);
-      if (!providedProKey || providedProKey !== PRO_WIDGET_KEY) {
+      if (!providedProKey || !safeTokenEquals(providedProKey, PRO_WIDGET_KEY)) {
         return safeEnd(res, 403, { 'Content-Type': 'application/json' }, JSON.stringify({ error: 'Forbidden' }));
       }
     }

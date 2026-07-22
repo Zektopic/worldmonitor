@@ -130,7 +130,58 @@
       "area": "المساحة"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "لمحة قطرية عن الصين",
+      "description": "الوضع الحالي للاقتصاد الكلي والأسواق والتجارة والطاقة والتوافر التشغيلي من عقود البيانات العامة القائمة.",
+      "macroPolicy": "الاقتصاد الكلي والسياسات",
+      "marketCredit": "السوق والائتمان",
+      "tradeSupply": "التجارة وسلاسل الإمداد",
+      "energy": "الطاقة",
+      "availability": "المخاطر والطيران",
+      "observed": "اعتبارًا من:",
+      "source": "المصدر:",
+      "imfGrowth": "توقعات النمو من صندوق النقد الدولي",
+      "creditGdp": "الائتمان إلى الناتج المحلي الإجمالي",
+      "strategicTrade": "الانكشاف التجاري الاستراتيجي",
+      "crudeImports": "واردات النفط الخام",
+      "gasDemand": "الطلب على الغاز",
+      "energyMix": "مزيج الكهرباء",
+      "coal": "الفحم",
+      "aviationAvailability": "توافر الطيران",
+      "hazardAvailability": "توافر بيانات المخاطر",
+      "noMajorDisruptions": "لم يُبلَّغ عن اضطرابات كبيرة",
+      "activeDisruptions_zero": "لا توجد اضطرابات نشطة",
+      "activeDisruptions_one": "اضطراب نشط واحد",
+      "activeDisruptions_two": "اضطرابان نشطان",
+      "activeDisruptions_few": "{{count}} اضطرابات نشطة",
+      "activeDisruptions_many": "{{count}} اضطرابًا نشطًا",
+      "activeDisruptions_other": "{{count}} اضطراب نشط",
+      "activeSignals_zero": "لا توجد إشارات نشطة",
+      "activeSignals_one": "إشارة نشطة واحدة",
+      "activeSignals_two": "إشارتان نشطتان",
+      "activeSignals_few": "{{count}} إشارات نشطة",
+      "activeSignals_many": "{{count}} إشارة نشطة",
+      "activeSignals_other": "{{count}} إشارة نشطة",
+      "aviationSource": "مراقبة الطيران",
+      "hazardSource": "إشارات الاستخبارات القُطرية",
+      "marketSource": "مؤشر السوق الوطني",
+      "ccfiSource": "بورصة شنغهاي للشحن",
+      "comtradeSource": "قاعدة الأمم المتحدة كومتريد، الجهة المبلغة 156",
+      "sourceUnavailable": "المصدر غير متاح",
+      "macroUnavailable": "بيانات الاقتصاد الكلي والسياسات غير متاحة حاليًا.",
+      "marketUnavailable": "بيانات السوق والائتمان غير متاحة حاليًا.",
+      "tradeUnavailable": "بيانات التجارة وسلاسل الإمداد غير متاحة حاليًا.",
+      "energyUnavailable": "بيانات الطاقة غير متاحة حاليًا.",
+      "availabilityUnavailable": "بيانات توافر المخاطر والطيران غير متاحة حاليًا.",
+      "status": {
+        "loading": "جارٍ التحميل",
+        "available": "متاح",
+        "partial": "جزئي",
+        "stale": "قديم",
+        "unavailable": "غير متاح"
+      }
+    }
   },
   "header": {
     "world": "العالم",
@@ -590,15 +641,15 @@
       },
       "worldMonitor": {
         "apiKey": {
-          "title": "مفتاح الترخيص",
+          "title": "مفتاح الترخيص / API",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "الصق ترخيصك لفتح جميع مصادر البيانات وميزات AI فوراً."
+          "description": "ينشئ مشتركو API Starter وAPI Business هذا المفتاح في لوحة الويب ضمن Settings → API Keys. إذا فُقد المفتاح الكامل، فألغِه وأنشئ بديلاً."
         },
         "dividerOr": "أو",
         "register": {
-          "title": "احجز مكانك",
-          "description": "نحن نستعد لإطلاق تراخيص World Monitor. سجّل الآن وكن أول من يحصل على الوصول — الأعضاء الأوائل يحصلون على أولوية الوصول وتسعير المؤسسين.",
-          "submitBtn": "انضم لقائمة الانتظار"
+          "title": "هل تحتاج إلى مفتاح API؟",
+          "description": "راجع worldmonitor.app/docs/api-keys للحصول على إرشادات خطوة بخطوة. تتطلب مفاتيح API اليدوية خطة API Starter أو API Business.",
+          "submitBtn": "عرض خطط API"
         }
       },
       "shellTitle": "إعدادات مراقب العالم",
@@ -690,7 +741,9 @@
         "space": "الفضاء"
       },
       "paused": "كاميرات الويب متوقفة",
-      "pausedIdle": "كاميرات الويب متوقفة — حرّك الماوس للاستئناف"
+      "pausedIdle": "كاميرات الويب متوقفة — حرّك الماوس للاستئناف",
+      "play": "تشغيل",
+      "previewStatus": "معاينة مباشرة"
     },
     "monitor": {
       "placeholder": "كلمات مفتاحية (مفصولة بفواصل)",
@@ -1214,8 +1267,8 @@
       "badgeAnimDesc": "تحريك شارات التحديث في رؤوس اللوحات",
       "headlineMemoryLabel": "ذاكرة العناوين",
       "headlineMemoryDesc": "تذكر العناوين المشاهدة لتمييز الجديدة",
-      "streamAlwaysOnLabel": "إبقاء البث المباشر قيد التشغيل",
-      "streamAlwaysOnDesc": "يمنع إيقاف Live Cams وLive News تلقائيًا عند الخمول. يُنصح به لاستخدام الشاشة الثانية / لوحة المراقبة. عطّله (Eco) لتوفير CPU/النطاق الترددي.",
+      "streamAlwaysOnLabel": "التشغيل التلقائي للبث المباشر على لوحة المعلومات",
+      "streamAlwaysOnDesc": "يبدأ Live News و Live Webcams تلقائيا عند ظهورهما. اتركه متوقفا لتحميل الفيديو فقط بعد النقر على تشغيل.",
       "globeRenderScaleOptions": {
         "1": "اقتصادي (1x)",
         "2": "4K (2x)",
@@ -1261,7 +1314,10 @@
       "sources_zero": "{{count}} مصادر",
       "sources_two": "{{count}} مصدران",
       "sources_few": "{{count}} مصادر",
-      "sources_many": "{{count}} مصدر"
+      "sources_many": "{{count}} مصدر",
+      "provenanceTitle": "أصل التغطية: عدد القصص المأخوذة والمصادر المميزة التي تم اختيار هذا الملخص منها",
+      "compiledFrom": "مجمّع من {{stories}} قصة عبر {{sources}} مصادر",
+      "briefFreshness": "تم الإنشاء منذ {{minutes}}د · أحدث مصدر عمره {{hours}}س"
     },
     "cascade": {
       "filters": {
@@ -1660,7 +1716,9 @@
       "verifying": "جارٍ التحقق…",
       "noResults": "لم يُعثر على قنوات تطابق \"{{term}}\"",
       "hlsUrl": "رابط بث HLS (اختياري)",
-      "invalidHlsUrl": "أدخل رابط بث HLS صالحًا (.m3u8)"
+      "invalidHlsUrl": "أدخل رابط بث HLS صالحًا (.m3u8)",
+      "playLiveFeed": "تشغيل البث المباشر",
+      "readyStatus": "جاهز عندما تكون مستعدا"
     },
     "securityAdvisories": {
       "loading": "جاري جلب التحذيرات الأمنية...",
@@ -2252,7 +2310,7 @@
     },
     "defensePatents": {
       "title": "إشارة البحث والتطوير",
-      "infoTooltip": "طلبات براءات الاختراع الدفاعية والثنائية الاستخدام الأسبوعية من Raytheon و Lockheed و Huawei و DARPA والمنظمات الاستراتيجية الأخرى. الفئات: H04B (الاتصالات)، H01L (أشباه الموصلات)، F42B (الذخيرة)، G06N (الذكاء الاصطناعي)، C12N (التكنولوجيا الحيوية). المصدر: USPTO PatentsView.",
+      "infoTooltip": "طلبات براءات الاختراع الدفاعية والثنائية الاستخدام الأسبوعية من Raytheon و Lockheed و Huawei و DARPA والمنظمات الاستراتيجية الأخرى. الفئات: H04B (الاتصالات)، H01L (أشباه الموصلات)، F42B (الذخيرة)، G06N (الذكاء الاصطناعي)، C12N (التكنولوجيا الحيوية). المصدر: USPTO Open Data Portal.",
       "loading": "جاري تحميل ملفات البحث والتطوير…",
       "error": "فشل تحميل بيانات براءات الاختراع.",
       "empty": "لا توجد ملفات في هذه الفئة.",
@@ -3101,6 +3159,7 @@
     "serverError": "خطأ الخادم: {{status}}",
     "unknownError": "خطأ غير معروف",
     "generatedWidget": "أداة معاد إنشاؤها: {{title}}",
+    "saveFailed": "تعذر حفظ الأداة. حاول مرة أخرى.",
     "checkingConnection": "التحقق من وصول الأداة…",
     "preflightConnected": "تم الاتصال بوكيل الأداة",
     "preflightInvalidKey": "مفتاح الأداة مرفوض. حدّث wm-widget-key وأعد التحميل.",
@@ -3200,5 +3259,18 @@
     "or": "أو أدخل خادماً مخصصاً",
     "generatingVisualization": "جاري بناء التصور...",
     "visualizationFailed": "فشل التصور"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -25,16 +25,20 @@ function auditReportWith(via) {
   };
 }
 
+function readRepoJson(relativePath) {
+  return JSON.parse(readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8'));
+}
+
 describe('security audit baseline', () => {
-  it('allows currently baselined high and critical advisories', () => {
+  it('allows currently baselined high advisories', () => {
     const report = auditReportWith({
-      name: 'shell-quote',
-      severity: 'critical',
-      title: 'known shell-quote advisory',
-      url: 'https://github.com/advisories/GHSA-w7jw-789q-3m8p',
+      name: '@clerk/clerk-js',
+      severity: 'high',
+      title: 'known clerk advisory',
+      url: 'https://github.com/advisories/GHSA-w24r-5266-9c3c',
     });
 
-    assert.deepEqual(collectUnbaselinedFindings(report, 'package-lock.json'), []);
+    assert.deepEqual(collectUnbaselinedFindings(report, 'pro-test/package-lock.json'), []);
   });
 
   it('ignores moderate production advisories for the high-severity PR gate', () => {
@@ -78,21 +82,78 @@ describe('security audit baseline', () => {
     ]);
   });
 
-  it('flags baseline entries that no longer match any current advisory', () => {
-    const report = auditReportWith({
-      name: 'shell-quote',
-      severity: 'critical',
-      title: 'known shell-quote advisory',
-      url: 'https://github.com/advisories/GHSA-w7jw-789q-3m8p',
-    });
+  it('keeps consumer-prices-core on the Fastify v5 audit fix', () => {
+    const packageJson = readRepoJson('consumer-prices-core/package.json');
+    const lockfile = readRepoJson('consumer-prices-core/package-lock.json');
 
-    // The still-present id is not reported as stale.
+    assert.match(packageJson.dependencies.fastify, /^\^5\./);
+    assert.match(packageJson.dependencies['@fastify/cors'], /^\^11\./);
+    assert.match(packageJson.dependencies['js-yaml'], /^\^4\.(?:[2-9]|\d{2,})\./);
+    assert.match(lockfile.packages['node_modules/fastify']?.version, /^5\./);
+    assert.match(lockfile.packages['node_modules/@fastify/cors']?.version, /^11\./);
+    assert.match(lockfile.packages['node_modules/js-yaml']?.version, /^4\.(?:[2-9]|\d{2,})\./);
+    assert.deepEqual(BASELINE_ADVISORIES_BY_LOCKFILE['consumer-prices-core/package-lock.json'], []);
+  });
+
+  it('keeps the root esbuild audit fix scoped away from Vite build tooling', () => {
+    const packageJson = readRepoJson('package.json');
+    const lockfile = readRepoJson('package-lock.json');
+    const rootEsbuild = lockfile.packages['node_modules/esbuild'];
+    const vite = lockfile.packages['node_modules/vite'];
+    const viteEsbuild = lockfile.packages['node_modules/vite/node_modules/esbuild'];
+
+    assert.equal(packageJson.overrides?.esbuild, undefined);
+    assert.equal(packageJson.overrides?.convex?.esbuild, '0.28.1');
+    assert.equal(rootEsbuild?.version, '0.28.1');
+    assert.equal(vite?.dependencies?.esbuild, '^0.25.0');
+    assert.ok(viteEsbuild, 'Vite must keep its own esbuild when root uses the audit-patched version');
+    assert.match(viteEsbuild.version, /^0\.25\./);
+    assert.notEqual(viteEsbuild.version, rootEsbuild.version);
+  });
+
+  it('flags baseline entries that no longer match any current advisory', () => {
+    // Report carries the two pro-test advisories that ARE present in the current
+    // audit (the clerk advisory + shell-quote); only GHSA-qjx8, which no longer
+    // matches anything, must be flagged stale.
+    const report = {
+      vulnerabilities: {
+        '@clerk/clerk-js': {
+          name: '@clerk/clerk-js',
+          severity: 'high',
+          via: [{
+            name: '@clerk/clerk-js',
+            severity: 'high',
+            title: 'known clerk advisory',
+            url: 'https://github.com/advisories/GHSA-w24r-5266-9c3c',
+          }],
+        },
+        'shell-quote': {
+          name: 'shell-quote',
+          severity: 'high',
+          via: [{
+            name: 'shell-quote',
+            severity: 'high',
+            title: 'shell-quote DoS',
+            url: 'https://github.com/advisories/GHSA-395f-4hp3-45gv',
+          }],
+        },
+        'sharp': {
+          name: 'sharp',
+          severity: 'high',
+          via: [{
+            name: 'sharp',
+            severity: 'high',
+            title: 'sharp inherited vulnerabilities in libvips',
+            url: 'https://github.com/advisories/GHSA-f88m-g3jw-g9cj',
+          }],
+        },
+      },
+    };
+
+    // The still-present ids are not reported as stale; GHSA-qjx8 (absent) is.
+    assert.deepEqual(collectStaleBaselineEntries(report, 'pro-test/package-lock.json'), ['GHSA-qjx8-664m-686j']);
+    // Root's baselined sharp advisory is present in the report, so nothing is stale.
     assert.deepEqual(collectStaleBaselineEntries(report, 'package-lock.json'), []);
-    // The other pro-test baseline ids matched nothing this run, so they are stale.
-    assert.deepEqual(collectStaleBaselineEntries(report, 'pro-test/package-lock.json').sort(), [
-      'GHSA-qjx8-664m-686j',
-      'GHSA-w24r-5266-9c3c',
-    ]);
   });
 
   it('treats a symlinked entry path as direct invocation (no silent fail-open)', () => {

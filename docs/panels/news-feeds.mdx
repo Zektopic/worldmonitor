@@ -1,6 +1,6 @@
 ---
 title: "News Feeds"
-description: "Catalogue of regional, topical, and variant-specific news-feed panels — content-stream surfaces that share a common panel framework with per-topic or per-region scoping."
+description: "Catalogue of regional, topical, and variant-specific news-feed panels — content-stream surfaces sharing a common framework with scoped filters."
 ---
 
 Every variant of WorldMonitor ships a set of **content-stream panels** — regional news, topical news, tech / startup feeds, finance and commodity streams, energy headlines, and happy-variant feel-good streams. They share a common panel framework: ranked headlines, source attribution, activity tracking, and Cmd+K / custom-monitor highlighting. This page is the collective reference so the per-panel behaviour is findable without writing one page per feed.
@@ -132,6 +132,17 @@ All free. Stream configuration lives in `src/config/variants/happy.ts`.
 - **Custom Monitor highlighting** — matching articles surface their [monitor](/panels/monitors) colour as an accent (including inside clusters).
 - **Cmd+K discoverability** — each panel is searchable by its title and category.
 - **Free by default** — none of the news-feed panels are PRO-gated.
+
+### Backed by endpoints
+
+| Feed family | Endpoint | Notes |
+|---|---|---|
+| Digest feed | `GET /api/news/v1/list-feed-digest` | Pre-aggregated RSS digest by site variant. |
+| Summary cache lookup | `GET /api/news/v1/summarize-article-cache` | Cache-only GET for deterministic article-summary keys; use `POST /api/news/v1/summarize-article` to generate. |
+| arXiv papers | `GET /api/research/v1/list-arxiv-papers` | ResearchService academic-paper feed. |
+| Trending repos | `GET /api/research/v1/list-trending-repos` | ResearchService GitHub trending feed. |
+| Hacker News items | `GET /api/research/v1/list-hackernews-items` | ResearchService Hacker News feed. |
+| Giving activity | `GET /api/giving/v1/get-giving-summary` | Global personal-giving and philanthropy summary used by happy-variant giving surfaces. |
 
 ## Related
 

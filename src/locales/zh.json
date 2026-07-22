@@ -130,7 +130,50 @@
       "area": "面积"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "中国国家概览",
+      "description": "基于现有公共数据契约的宏观、市场、贸易、能源与运行可用性现状。",
+      "macroPolicy": "宏观与政策",
+      "marketCredit": "市场与信贷",
+      "tradeSupply": "贸易与供应链",
+      "energy": "能源",
+      "availability": "灾害与航空",
+      "observed": "数据日期：",
+      "source": "来源：",
+      "imfGrowth": "IMF 增长预测",
+      "creditGdp": "信贷占 GDP 比重",
+      "strategicTrade": "战略贸易敞口",
+      "crudeImports": "原油进口量",
+      "gasDemand": "天然气需求",
+      "energyMix": "电力结构",
+      "coal": "煤炭",
+      "aviationAvailability": "航空可用性",
+      "hazardAvailability": "灾害可用性",
+      "noMajorDisruptions": "未报告重大中断",
+      "activeDisruptions_one": "{{count}} 起活跃中断",
+      "activeDisruptions_other": "{{count}} 起活跃中断",
+      "activeSignals_one": "{{count}} 个活跃信号",
+      "activeSignals_other": "{{count}} 个活跃信号",
+      "aviationSource": "航空监测",
+      "hazardSource": "国家情报信号",
+      "marketSource": "国家市场指数",
+      "ccfiSource": "上海航运交易所",
+      "comtradeSource": "联合国商品贸易数据库（报告方 156）",
+      "sourceUnavailable": "来源不可用",
+      "macroUnavailable": "宏观与政策数据目前不可用。",
+      "marketUnavailable": "市场与信贷数据目前不可用。",
+      "tradeUnavailable": "贸易与供应链数据目前不可用。",
+      "energyUnavailable": "能源数据目前不可用。",
+      "availabilityUnavailable": "灾害与航空可用性数据目前不可用。",
+      "status": {
+        "loading": "加载中",
+        "available": "可用",
+        "partial": "部分",
+        "stale": "过期",
+        "unavailable": "不可用"
+      }
+    }
   },
   "header": {
     "world": "世界",
@@ -583,15 +626,15 @@
       "logCleared": "日志已清除。",
       "worldMonitor": {
         "apiKey": {
-          "title": "许可证密钥",
+          "title": "许可证 / API 密钥",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "粘贴您的许可证，即刻解锁所有数据源和AI功能。"
+          "description": "API Starter 和 API Business 订阅者可在网页控制台的 Settings → API Keys 中创建此密钥。如果完整密钥丢失，请撤销并创建替代密钥。"
         },
         "dividerOr": "或",
         "register": {
-          "title": "预留您的名额",
-          "description": "World Monitor许可证即将上线。立即注册成为首批用户 — 早期会员享有优先访问和创始会员价格。",
-          "submitBtn": "加入候补名单"
+          "title": "需要 API 密钥？",
+          "description": "请访问 worldmonitor.app/docs/api-keys 查看分步说明。手动 API 密钥需要 API Starter 或 API Business 方案。",
+          "submitBtn": "查看 API 方案"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "美洲",
         "asia": "亚洲",
         "space": "太空"
-      }
+      },
+      "play": "播放",
+      "previewStatus": "实时预览"
     },
     "positiveNewsFeed": {
       "noStories": "此类别暂无报道"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "在面板标题中显示更新徽章动画",
       "headlineMemoryLabel": "标题记忆",
       "headlineMemoryDesc": "记住已阅标题以突出显示新内容",
-      "streamAlwaysOnLabel": "保持实时流持续播放",
-      "streamAlwaysOnDesc": "防止 Live Cams 和 Live News 在你空闲时自动暂停。建议用于副屏 / 墙面看板场景。关闭（Eco）可节省 CPU/带宽。",
+      "streamAlwaysOnLabel": "在仪表板上自动播放直播流",
+      "streamAlwaysOnDesc": "当 Live News 和 Live Webcams 可见时自动启动。保持关闭则仅在点击“播放”后加载视频。",
       "analysisFrameworksLabel": "分析框架",
       "analysisFrameworksActivePerPanel": "每个面板激活",
       "analysisFrameworksSkillLibrary": "技能库",
@@ -1300,7 +1345,10 @@
       "tonePositive": "正面",
       "overall": "整体：{{tone}}",
       "signalTypesEvents": "{{types}} 种信号类型 • {{events}} 个事件",
-      "newsSignals": "{{news}} 条新闻 • {{signals}} 个信号"
+      "newsSignals": "{{news}} 条新闻 • {{signals}} 个信号",
+      "compiledFrom": "编译自 {{stories}} 条故事和 {{sources}} 个来源",
+      "provenanceTitle": "覆盖来源：此摘要选自多少条摄取的故事和不同的来源",
+      "briefFreshness": "生成于 {{minutes}}m 前 · 最新来源 {{hours}}h 前"
     },
     "settings": {
       "exportSettings": "导出设置",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "请输入有效的YouTube用户名（例如 @ChannelName）",
       "verifying": "验证中…",
       "hlsUrl": "HLS流地址（可选）",
-      "invalidHlsUrl": "请输入有效的HLS流地址（.m3u8）"
+      "invalidHlsUrl": "请输入有效的HLS流地址（.m3u8）",
+      "playLiveFeed": "播放直播源",
+      "readyStatus": "准备就绪，随时可播"
     },
     "map": {
       "showMap": "显示地图",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "研发信号",
-      "infoTooltip": "雷神、洛克希德、华为、DARPA 及其他战略组织的周度国防和双用途专利申请。分类：H04B（通信）、H01L（半导体）、F42B（弹药）、G06N（AI）、C12N（生物技术）。数据来源：美国专利商标局 PatentsView。",
+      "infoTooltip": "雷神、洛克希德、华为、DARPA 及其他战略组织的周度国防和双用途专利申请。分类：H04B（通信）、H01L（半导体）、F42B（弹药）、G06N（AI）、C12N（生物技术）。数据来源：美国专利商标局开放数据门户。",
       "loading": "正在加载研发申请…",
       "error": "加载专利数据失败。",
       "empty": "该分类中无申请。",
@@ -3037,6 +3087,7 @@
     "serverError": "服务器错误: {{status}}",
     "unknownError": "未知错误",
     "generatedWidget": "生成的小组件: {{title}}",
+    "saveFailed": "无法保存小组件。请重试。",
     "checkingConnection": "检查小组件访问权限中…",
     "preflightConnected": "已连接到小组件代理",
     "preflightInvalidKey": "小组件密钥被拒绝。请更新 wm-widget-key 并重新加载。",
@@ -3136,5 +3187,18 @@
     "or": "或输入自定义服务器",
     "generatingVisualization": "正在生成可视化...",
     "visualizationFailed": "可视化失败"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

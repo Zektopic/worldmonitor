@@ -36,18 +36,29 @@
           "Daily market briefs",
           "Military & geopolitical tracking",
           "Custom widget builder",
-          "MCP data connectors",
+          "MCP + SDK access for Claude Desktop & other AI clients (50 calls/day)",
           "Priority data refresh"
         ]
       },
       "api": {
         "description": "Programmatic access to intelligence data",
         "features": [
-          "REST API access",
+          "REST API + official SDKs (npm, PyPI, RubyGems, Go)",
+          "License / API key included",
           "Real-time data streams",
-          "1,000 requests/day",
+          "60 requests/minute",
+          "1,000 requests/day included",
           "Webhook notifications",
           "Custom data exports"
+        ]
+      },
+      "apiBusiness": {
+        "description": "High-volume API for teams",
+        "features": [
+          "Everything in API Starter",
+          "300 requests/minute",
+          "10,000 requests/day included",
+          "Priority support"
         ]
       },
       "enterprise": {
@@ -252,15 +263,16 @@
     "apiTier": "API TIER",
     "title": "Programmatic Intelligence",
     "subtitle": "For developers, analysts, and teams building on World Monitor data. Separate from Pro — use both or either.",
-    "restApi": "REST API across all 30+ service domains",
+    "restApi": "REST API across all 30+ service domains — official SDKs for JavaScript, Python, Ruby, Go",
     "authenticated": "Authenticated per-key, rate-limited per tier",
     "structured": "Structured JSON with cache headers and OpenAPI 3.1 docs",
+    "cli": "Zero-dependency CLI to script every tool from your shell",
     "starter": "Starter",
     "starterReqs": "1,000 req/day",
     "starterWebhooks": "5 webhook rules",
     "business": "Business",
-    "businessReqs": "50,000 req/day",
-    "businessWebhooks": "Unlimited webhooks + SLA",
+    "businessReqs": "10,000 req/day",
+    "businessWebhooks": "Priority support",
     "feedData": "Feed data into your dashboards, automate alerting via Zapier/n8n/Make, build custom scoring models on CII/risk data."
   },
   "enterpriseShowcase": {
@@ -417,7 +429,7 @@
       "ogDescription": "The world's raw signals — ships, jets, sirens, cables, markets — on one free live intelligence map, with AI that flags when they converge. Free, no signup."
     },
     "nav": {
-      "useCases": "Use cases",
+      "useCases": "Correlations",
       "firstFive": "First 5 min",
       "depth": "Depth",
       "pricing": "Pricing",
@@ -436,7 +448,8 @@
       "trustUsers": "2M+ users",
       "trustOpenSource": "Open source · AGPL-3.0",
       "screenshotAlt": "World Monitor live intelligence dashboard — global map with conflict, shipping and market layers",
-      "plateNote": "Captured from the live map — click to open it"
+      "plateNote": "Captured from the live map — click to open it",
+      "trustBuild": "Build on it:"
     },
     "live": {
       "eyebrow": "Live right now",
@@ -450,68 +463,75 @@
       "cardChokepoints": "Maritime chokepoints",
       "chokeSummary": "{{disrupted}} of {{total}} disrupted",
       "cardMarkets": "Markets",
+      "marketBreadth": "Up",
+      "marketBest": "Best",
+      "marketWeakest": "Weakest",
       "trendRising": "rising",
       "trendFalling": "falling",
       "trendStable": "stable"
     },
     "moments": {
-      "eyebrow": "How people use it",
-      "title": "Four moments where minutes matter.",
-      "sub": "How teams run it — on signals the platform watches around the clock, with what's free and what's Pro marked at every step.",
-      "bridge1": "No desk required.",
-      "bridge2": "Most people just open it and poke the map — here's what your first five minutes look like ↓",
+      "eyebrow": "Correlation engine",
+      "title": "The edge is seeing the signals move together.",
+      "sub": "You can find the feeds in a hundred places. The edge is one surface where geopolitics, shipping, commodities, macro, markets, weather, infrastructure, cyber, news and country risk can explain each other.",
+      "signalStack": "Signals fused",
+      "correlation": "Correlation",
+      "bridge1": "Not a list of feeds.",
+      "bridge2": "A correlation surface: when three systems move together, the map makes it visible ↓",
       "m1": {
-        "kicker": "For analysts, OSINT & newsrooms",
-        "title": "The surge before the statement",
-        "s1": "Military airlift and tanker activity in the Pacific theater runs 3× its 48-hour baseline.",
-        "s2": "Taiwan turns focal: in the headlines and in on-map signals at once. Hotspot trend: escalating.",
-        "s3": "One click: the country dossier — instability score, live signals, 7-day timeline, prediction-market odds.",
-        "s4": "The breaking banner fires — only when independent origins corroborate. You cite the signal, not the rumor.",
-        "c1": "Military layers · free",
-        "c2": "29 hotspots · free",
-        "c3": "Country dossiers · free",
-        "c4": "Corroborated alerts · free",
-        "link": "Watch the hotspot board live →"
+        "kicker": "Geopolitics + markets + macro",
+        "title1": "The market move",
+        "title2": "has a map.",
+        "s1": "Country risk, sanctions, hotspot escalation, official alerts and news velocity show where geopolitical pressure is rising.",
+        "s2": "Ships, chokepoints, flights, cables and infrastructure proximity show whether that pressure can hit supply, trade or capital routes.",
+        "s3": "Rates, FX, equities, crypto, energy and safe-haven assets show which market regime is repricing.",
+        "s4": "The edge is seeing geopolitical pressure, transmission path and price action together before it becomes a consensus note.",
+        "c1": "Country risk",
+        "c2": "Trade flows",
+        "c3": "Rates + FX",
+        "c4": "Equities + crypto",
+        "link": "Open the market lens →"
       },
       "m2": {
-        "kicker": "For supply chain & energy ops",
-        "title1": "Bab el-Mandeb chokes at 05:58.",
-        "title2": "You're briefed by 06:15.",
-        "s1": "Vessel density in the strait drops ~40% under its rolling baseline. The Ships layer flags it.",
-        "s2": "The chokepoint card flips to disrupted; Yemen's instability index climbs on converging signals.",
-        "s3": "You run the closure scenario: most-exposed countries, ranked. Route Explorer prices the Cape of Good Hope detour in days and cost.",
-        "s4": "Leadership briefed — with exported impact tables, not screenshots of headlines.",
-        "c1": "Ships layer · free",
-        "c2": "13 chokepoints · free",
-        "c3": "Scenario engine · PRO",
-        "c4": "Route Explorer · PRO",
-        "link": "Watch the straits live →"
+        "kicker": "Commodities + chokepoints + weather",
+        "title1": "Commodity moves start",
+        "title2": "in the physical world.",
+        "s1": "AIS, ports, pipelines, LNG, refineries, waterways and chokepoints show when supply is slowing, rerouting or concentrating.",
+        "s2": "Weather, fires, earthquakes, outages and conflict layers show the physical events that can hit production or transport.",
+        "s3": "Oil, gas, gold, grains, miners, shipping names and commodity-linked currencies show how the shock prices through.",
+        "s4": "Commodity intelligence only works when physical flow, disruption signal and market spread are visible together.",
+        "c1": "AIS + ports",
+        "c2": "Weather + fires",
+        "c3": "Energy assets",
+        "c4": "Oil/gold/grains",
+        "link": "Open the commodity lens →"
       },
       "m3": {
-        "kicker": "For infrastructure & risk teams",
-        "title": "The cable everyone googles tomorrow",
-        "s1": "A subsea cable reports damage. You click it on the map instead of opening twelve tabs.",
-        "s2": "The dependency graph — 350 cables, pipelines, ports and chokepoints — propagates the failure three layers deep.",
-        "s3": "You see which countries lose redundancy and which alternate routes absorb the load, at what capacity.",
-        "s4": "Assessment exported as JSON, CSV or PNG and in front of stakeholders.",
-        "c1": "86 cables · free",
-        "c2": "Cascade graph · free",
-        "c3": "Exports · free",
-        "link": "Trace a cable on the map →"
+        "kicker": "AI infrastructure + energy + climate",
+        "title1": "The AI boom has",
+        "title2": "a physical balance sheet.",
+        "s1": "AI datacenters sit beside grids, pipelines, LNG, nuclear facilities, cloud regions and power-market exposure.",
+        "s2": "Grid stress, outages, heat, fire and weather layers show which compute corridors are under pressure today.",
+        "s3": "Company, exchange and macro panels show who is exposed when energy, compute and capital collide.",
+        "s4": "AI infrastructure risk only appears when physical assets, climate signals and markets share one screen.",
+        "c1": "AI datacenters",
+        "c2": "Power assets",
+        "c3": "Fires + weather",
+        "c4": "Markets",
+        "link": "Map AI infrastructure →"
       },
       "m4": {
-        "kicker": "For traders & market watchers",
-        "title1": "The sector turns red.",
-        "title2": "You ask the map why.",
-        "s1": "92 exchanges, futures and crypto on screen — next to the geopolitics that moves them.",
-        "s2": "A keyword trends across independent feeds while a sector heatmap turns red. Coincidence is now checkable.",
-        "s3": "You ask WM Analyst what's driving the move — it answers from the live feeds, with citations.",
-        "s4": "Next morning your AI digest lands in Telegram — so the day starts pre-briefed.",
-        "c1": "Markets · free",
-        "c2": "50-symbol watchlist · free",
-        "c3": "WM Analyst · PRO",
-        "c4": "AI digest · PRO",
-        "link": "Open the Finance lens →"
+        "kicker": "Cables + outages + trade",
+        "title": "The cable break becomes a cascade",
+        "s1": "Subsea cables, landing stations, ports, pipelines and chokepoints are mapped together.",
+        "s2": "Internet and BGP anomaly feeds show whether a physical fault is becoming a digital outage.",
+        "s3": "Trade corridors, country resilience and redundancy data show who loses fallback routes first.",
+        "s4": "Cable damage matters when telecom redundancy, trade corridors and country exposure line up.",
+        "c1": "86 cables",
+        "c2": "BGP + outages",
+        "c3": "Ports + pipelines",
+        "c4": "Resilience",
+        "link": "Trace a cable on the map →"
       }
     },
     "firstFive": {
@@ -582,17 +602,18 @@
     },
     "agents": {
       "eyebrow": "For builders & AI agents",
-      "title": "Your AI can use it too — a 39-tool MCP server.",
-      "sub": "Everything on the map is also a tool. Point Claude — or any MCP-compatible agent — at World Monitor and it researches with live data instead of training-data memories.",
-      "b1": "39 MCP tools: risk scores, chokepoints, conflicts, markets, briefs",
-      "b2": "JMESPath projection on every tool — agents fetch exactly what they need",
-      "b3": "OAuth API with one key across 65+ upstream providers",
-      "b4": "Open source under AGPL-3.0 — read it, self-host it, build on it",
-      "cta": "Read the MCP docs",
+      "title": "Build on live world intelligence — from any stack.",
+      "sub": "Everything on the map is also an API. Wire it into Claude over MCP, call the REST endpoints from anywhere, or install a native client for Python, Ruby, Go, or JavaScript — your code researches with live data instead of training-data memories.",
+      "b1": "39 MCP tools — risk scores, chokepoints, conflicts, markets, briefs",
+      "b2": "Documented REST API — 193 operations, one OpenAPI 3.1 spec, one key",
+      "b3": "Official SDKs on npm, PyPI, RubyGems, and Go — zero-dependency, MCP-first",
+      "b4": "JMESPath projection on every call — fetch exactly the fields you need",
+      "cta": "Read the developer docs",
       "termTitle": "claude — session",
       "termQuery": "Is our Red Sea exposure getting worse this week?",
       "termAnswer": "Transit counts down week-over-week; war-risk tier elevated; two density anomalies in the last 48h.",
-      "termDocs": "See the full tool reference →"
+      "termDocs": "See the full tool reference →",
+      "promise": "One key. 39 MCP tools. A full REST API. Language-native clients."
     },
     "pricing": {
       "eyebrow": "Access",
@@ -610,7 +631,7 @@
       "proF1": "WM Analyst — chat across 30+ live services, with citations",
       "proF2": "Scenario engine & Route Explorer — game disruptions before they hit",
       "proF3": "Personal AI digest — daily, twice-daily or weekly, to Slack, Telegram or email",
-      "proF4": "MCP + API access — 39 tools under one key",
+      "proF4": "MCP, REST API & official SDKs — 39 tools under one key",
       "proF5": "Custom widget builder for your own panels",
       "cta": "See plans & pricing",
       "note": "From $39.99/mo · 2 months free when billed annually"

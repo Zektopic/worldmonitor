@@ -21,6 +21,7 @@
     "serverError": "सर्वर त्रुटि: {{status}}",
     "unknownError": "अज्ञात त्रुटि",
     "generatedWidget": "बनाया गया विजेट: {{title}}",
+    "saveFailed": "विजेट सहेजा नहीं जा सका. कृपया पुनः प्रयास करें.",
     "checkingConnection": "विजेट का संबंध जांच रहे हैं…",
     "preflightConnected": "विजेट एजेंट से जुड़ा हुआ है",
     "preflightInvalidKey": "विजेट की अस्वीकृत। wm-widget-key अपडेट करें और पेज रीलोड करें।",
@@ -198,7 +199,50 @@
       "area": "क्षेत्रफल"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "देश अवलोकन: चीन",
+      "description": "मौजूदा सार्वजनिक डेटा अनुबंधों से वर्तमान मैक्रो, बाज़ार, व्यापार, ऊर्जा और परिचालन उपलब्धता।",
+      "macroPolicy": "मैक्रो और नीति",
+      "marketCredit": "बाज़ार और ऋण",
+      "tradeSupply": "व्यापार और आपूर्ति श्रृंखला",
+      "energy": "ऊर्जा",
+      "availability": "खतरे और विमानन",
+      "observed": "तिथि:",
+      "source": "स्रोत:",
+      "imfGrowth": "IMF वृद्धि पूर्वानुमान",
+      "creditGdp": "GDP की तुलना में ऋण",
+      "strategicTrade": "रणनीतिक व्यापार एक्सपोज़र",
+      "crudeImports": "कच्चे तेल का आयात",
+      "gasDemand": "गैस की मांग",
+      "energyMix": "बिजली मिश्रण",
+      "coal": "कोयला",
+      "aviationAvailability": "विमानन उपलब्धता",
+      "hazardAvailability": "खतरा उपलब्धता",
+      "noMajorDisruptions": "कोई बड़ा व्यवधान दर्ज नहीं",
+      "activeDisruptions_one": "{{count}} सक्रिय व्यवधान",
+      "activeDisruptions_other": "{{count}} सक्रिय व्यवधान",
+      "activeSignals_one": "{{count}} सक्रिय संकेत",
+      "activeSignals_other": "{{count}} सक्रिय संकेत",
+      "aviationSource": "विमानन निगरानी",
+      "hazardSource": "देश खुफिया संकेत",
+      "marketSource": "राष्ट्रीय बाज़ार सूचकांक",
+      "ccfiSource": "शंघाई शिपिंग एक्सचेंज",
+      "comtradeSource": "UN Comtrade, रिपोर्टर 156",
+      "sourceUnavailable": "स्रोत अनुपलब्ध",
+      "macroUnavailable": "मैक्रो और नीति डेटा फ़िलहाल अनुपलब्ध है।",
+      "marketUnavailable": "बाज़ार और ऋण डेटा फ़िलहाल अनुपलब्ध है।",
+      "tradeUnavailable": "व्यापार और आपूर्ति श्रृंखला डेटा फ़िलहाल अनुपलब्ध है।",
+      "energyUnavailable": "ऊर्जा डेटा फ़िलहाल अनुपलब्ध है।",
+      "availabilityUnavailable": "खतरों और विमानन की उपलब्धता का डेटा फ़िलहाल अनुपलब्ध है।",
+      "status": {
+        "loading": "लोड हो रहा है",
+        "available": "उपलब्ध",
+        "partial": "आंशिक",
+        "stale": "पुराना",
+        "unavailable": "अनुपलब्ध"
+      }
+    }
   },
   "header": {
     "world": "दुनिया",
@@ -657,15 +701,15 @@
       "logCleared": "लॉग साफ़ किया गया।",
       "worldMonitor": {
         "apiKey": {
-          "title": "लाइसेंस की",
+          "title": "लाइसेंस / API कुंजी",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "अभी अपनी लाइसेंस चिपकाएं और हर डेटा स्रोत और AI फीचर चालू करें।"
+          "description": "API Starter और API Business सदस्य यह कुंजी वेब डैशबोर्ड में Settings → API Keys से बनाते हैं। पूरी कुंजी खो जाने पर उसे रद्द करें और नई कुंजी बनाएँ।"
         },
         "dividerOr": "या",
         "register": {
-          "title": "अपनी जगह आरक्षित करें",
-          "description": "हम World Monitor लाइसेंस लॉन्च करने की तैयारी कर रहे हैं। अभी साइन अप करें और पहले पंक्ति में रहें — शुरुआती सदस्यों को प्राथमिकता और संस्थापक कीमत मिलेगी।",
-          "submitBtn": "इंतजार सूची में जुड़ें"
+          "title": "API कुंजी चाहिए?",
+          "description": "चरण-दर-चरण सहायता के लिए worldmonitor.app/docs/api-keys देखें। मैन्युअल API कुंजियों के लिए API Starter या API Business योजना आवश्यक है।",
+          "submitBtn": "API योजनाएँ देखें"
         }
       },
       "table": {
@@ -758,7 +802,9 @@
         "americas": "अमेरिका",
         "asia": "एशिया",
         "space": "अंतरिक्ष"
-      }
+      },
+      "play": "चलाएं",
+      "previewStatus": "लाइव पूर्वावलोकन"
     },
     "pinnedWebcams": {
       "pinFromMap": "मैप से वेबकैम पिन करें"
@@ -1413,8 +1459,8 @@
       "analysisFrameworksFromAgentskills": "agentskills.io से",
       "analysisFrameworksPasteJson": "JSON चिपकाएँ",
       "analysisFrameworksSaveToLibrary": "पुस्तकालय में सहेजें",
-      "streamAlwaysOnLabel": "लाइव स्ट्रीम हमेशा चालू रखें",
-      "streamAlwaysOnDesc": "आपके निष्क्रिय होने पर लाइव कैम और न्यूज को स्वचालित रूप से न रोकें। दूसरे मॉनिटर या वॉलबोर्ड के लिए अनुशंसित। CPU/बैंडविड्थ बचाने के लिए अक्षम करें।",
+      "streamAlwaysOnLabel": "डैशबोर्ड पर लाइव स्ट्रीम अपने-आप चलाएं",
+      "streamAlwaysOnDesc": "Live News और Live Webcams दिखाई देने पर अपने-आप शुरू करता है। वीडियो को केवल Play क्लिक करने के बाद लोड करने के लिए इसे बंद रखें.",
       "frameworkNote": "केवल क्लाइंट-जनित विश्लेषण पर लागू",
       "loadingServerInsights": "सर्वर इंटेलिजेंस लोड हो रहा है...",
       "usingCachedBrief": "कैश्ड संक्षिप्त उपयोग हो रहा है...",
@@ -1440,7 +1486,10 @@
       "tonePositive": "सकारात्मक",
       "overall": "कुल मिलाकर: {{tone}}",
       "signalTypesEvents": "{{types}} संकेत प्रकार • {{events}} घटनाएं",
-      "newsSignals": "{{news}} खबरें • {{signals}} संकेत"
+      "newsSignals": "{{news}} खबरें • {{signals}} संकेत",
+      "provenanceTitle": "कवरेज प्रोवेनेंस: इस ब्रीफ को कितनी अंतर्ग्रहीत कहानियों और विशिष्ट स्रोतों से चुना गया था",
+      "compiledFrom": "{{stories}} कहानियों और {{sources}} स्रोतों से संकलित",
+      "briefFreshness": "{{minutes}}m पहले जनरेट किया गया · नवीनतम स्रोत {{hours}}h पुराना"
     },
     "settings": {
       "exportSettings": "सेटिंग्स निर्यात करें",
@@ -1997,7 +2046,9 @@
       "invalidHandle": "सही YouTube हैंडल दर्ज करें (जैसे @ChannelName)",
       "verifying": "सत्यापित कर रहे हैं…",
       "hlsUrl": "HLS स्ट्रीम URL (वैकल्पिक)",
-      "invalidHlsUrl": "वैध HLS स्ट्रीम URL दर्ज करें (.m3u8)"
+      "invalidHlsUrl": "वैध HLS स्ट्रीम URL दर्ज करें (.m3u8)",
+      "playLiveFeed": "लाइव फ़ीड चलाएं",
+      "readyStatus": "आप तैयार हों तो तैयार"
     },
     "map": {
       "showMap": "मानचित्र दिखाएं",
@@ -2280,7 +2331,7 @@
     },
     "defensePatents": {
       "title": "R&D संकेत",
-      "infoTooltip": "रैथियॉन, लॉकहीड, हुवावे, DARPA, और अन्य रणनीतिक संगठनों द्वारा साप्ताहिक रक्षा और द्वि-उपयोग पेटेंट फाइलिंग। श्रेणियाँ: H04B (संचार), H01L (सेमीकंडक्टर), F42B (गोली बारूद), G06N (AI), C12N (बायोटेक)। स्रोत: USPTO PatentsView।",
+      "infoTooltip": "रैथियॉन, लॉकहीड, हुवावे, DARPA, और अन्य रणनीतिक संगठनों द्वारा साप्ताहिक रक्षा और द्वि-उपयोग पेटेंट फाइलिंग। श्रेणियाँ: H04B (संचार), H01L (सेमीकंडक्टर), F42B (गोली बारूद), G06N (AI), C12N (बायोटेक)। स्रोत: USPTO Open Data Portal।",
       "loading": "R&D फाइलिंग लोड हो रही हैं…",
       "error": "पेटेंट डेटा लोड करने में विफल।",
       "empty": "इस श्रेणी में कोई फाइलिंग नहीं।",
@@ -3136,5 +3187,18 @@
     "or": "या कस्टम सर्वर दर्ज करें",
     "generatingVisualization": "विज़ुअलाइज़ेशन बना रहे हैं...",
     "visualizationFailed": "विज़ुअलाइज़ेशन असफल"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

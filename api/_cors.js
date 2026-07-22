@@ -25,6 +25,7 @@ const ALLOWED_HEADERS = [
   'X-Pro-Key',
   'X-WorldMonitor-Desktop-Timestamp',
   'X-WorldMonitor-Desktop-Signature',
+  'Idempotency-Key',
   'Mcp-Session-Id',
   'MCP-Protocol-Version',
   'Last-Event-ID',
@@ -34,6 +35,25 @@ const EXPOSED_HEADERS = [
   'Mcp-Session-Id',
   'WWW-Authenticate',
   'Retry-After',
+  'Idempotency-Key',
+  'Idempotent-Replayed',
+  // IETF RateLimit fields (draft-ietf-httpapi-ratelimit-headers): RateLimit-Policy
+  // + RateLimit-Limit are advertised on every API response (vercel.json); the
+  // combined RateLimit member and RateLimit-Remaining/Reset appear on a 429.
+  // Exposed so browser-context agents can read them cross-origin and self-throttle.
+  'RateLimit',
+  'RateLimit-Policy',
+  'RateLimit-Limit',
+  'RateLimit-Remaining',
+  'RateLimit-Reset',
+  // Legacy X-RateLimit-* retained for back-compat with existing consumers.
+  'X-RateLimit-Limit',
+  'X-RateLimit-Remaining',
+  'X-RateLimit-Reset',
+  'X-WorldMonitor-Bbox',
+  'X-WorldMonitor-Bbox-Missing',
+  'X-WorldMonitor-Bbox-Invalid',
+  'X-Military-Bbox',
 ].join(', ');
 
 function isAllowedOrigin(origin) {

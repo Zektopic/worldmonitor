@@ -300,7 +300,7 @@ function extractStoryTrackWriterFields(src) {
 }
 
 function extractDocStoryTrackHashFields(text) {
-  const match = text.match(/The story-track hash fields written today are:\n\n([\s\S]*?)\n\n/);
+  const match = text.match(/The story-track hash fields written today are:\r?\n\r?\n([\s\S]*?)\r?\n\r?\n/);
   assert.ok(match, 'failed to locate documented story-track hash field list');
   return [...match[1].matchAll(/`([A-Za-z][A-Za-z0-9]*)`/g)]
     .map((m) => m[1])
@@ -316,7 +316,7 @@ function openApiDescription(schemaName, propertyName, nestedPropertyName) {
 }
 
 function extractYamlSchemaBlock(yamlText, schemaName) {
-  const lines = yamlText.split('\n');
+  const lines = yamlText.split(/\r?\n/);
   const start = lines.findIndex((line) => line === `        ${schemaName}:`);
   assert.notEqual(start, -1, `failed to locate YAML schema ${schemaName}`);
 
@@ -807,12 +807,12 @@ describe('news digest methodology parity', () => {
       .map((m) => m[1]);
     const weeklyTemperature = extractNumericConst(weeklyBriefSrc, 'BRIEF_TEMPERATURE');
 
-    assert.deepEqual(providerNames, ['groq', 'openrouter']);
-    assert.deepEqual(providerModels, ['llama-3.3-70b-versatile', 'google/gemini-2.5-flash']);
+    assert.deepEqual(providerNames, ['openrouter', 'groq']);
+    assert.deepEqual(providerModels, ['deepseek/deepseek-v4-flash', 'llama-3.3-70b-versatile']);
     assert.equal(weeklyTemperature, 0.3);
 
     assertDocMatches(
-      /Regional weekly briefs[\s\S]*tr(?:y|ies) Groq first[\s\S]*`llama-3\.3-70b-versatile`[\s\S]*OpenRouter `google\/gemini-2\.5-flash`[\s\S]*temperature\s+`0\.3`/,
+      /Regional weekly briefs[\s\S]*tr(?:y|ies) OpenRouter first[\s\S]*`deepseek\/deepseek-v4-flash`[\s\S]*Groq `llama-3\.3-70b-versatile`[\s\S]*temperature\s+`0\.3`/,
       'regional weekly brief provider order, models, and temperature',
     );
     assertDocMatches(

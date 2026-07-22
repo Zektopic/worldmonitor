@@ -23,6 +23,22 @@ import {
   selectDatasets,
 } from '../filters';
 import type { ToolDef } from '../types';
+import {
+  CHOKEPOINT_MONITOR_UI_URI,
+  CONFLICT_EVENTS_UI_URI,
+  FORECASTS_UI_URI,
+  MARKET_RADAR_UI_URI,
+  NATURAL_DISASTERS_UI_URI,
+  NEWS_INTELLIGENCE_UI_URI,
+  PREDICTION_MARKETS_UI_URI,
+} from '../ui/registry';
+
+// Iran-events domain sunset (war ended 2026-07). Default OFF: drop the dormant
+// conflict:iran-events:v1 key from the get_conflict_events cache set so the MCP
+// tool stops serving the stale snapshot that lingers for the key's 14-day TTL.
+// The output schema still documents an iran-events field (harmless when absent).
+// Set IRAN_EVENTS_ENABLED=true to restore. See api/health.js.
+const IRAN_EVENTS_ENABLED = (process.env.IRAN_EVENTS_ENABLED ?? 'false').toLowerCase() === 'true';
 
 export const CACHE_TOOLS: ToolDef[] = [
   {
@@ -131,6 +147,9 @@ export const CACHE_TOOLS: ToolDef[] = [
       }
       return data;
     },
+    // MCP Apps (`io.modelcontextprotocol/ui`): links the tool to its interactive
+    // ui:// app shell. Single source of truth — registered in ../ui/registry.ts.
+    _uiResourceUri: MARKET_RADAR_UI_URI,
     _cacheKeys: [
       'market:stocks-bootstrap:v1',
       'market:commodities-bootstrap:v1',
@@ -160,6 +179,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   },
   {
     name: 'get_conflict_events',
+    _uiResourceUri: CONFLICT_EVENTS_UI_URI,
     _outputBudgetBytes: 131072,
     description: 'Active armed conflict events (UCDP, Iran), unrest events with geo-coordinates, and country risk scores. Covers ongoing conflicts, protests, and instability indices worldwide.',
     inputSchema: {
@@ -241,7 +261,7 @@ export const CACHE_TOOLS: ToolDef[] = [
     },
     _cacheKeys: [
       'conflict:ucdp-events:v1',
-      'conflict:iran-events:v1',
+      ...(IRAN_EVENTS_ENABLED ? ['conflict:iran-events:v1'] : []),
       'unrest:events:v1',
       CII_RISK_SCORE_CACHE_KEYS.stale,
     ],
@@ -309,6 +329,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   },
   {
     name: 'get_news_intelligence',
+    _uiResourceUri: NEWS_INTELLIGENCE_UI_URI,
     _outputBudgetBytes: 131072,
     description: 'AI-classified geopolitical threat news summaries, GDELT intelligence signals, cross-source signals, and security advisories from WorldMonitor\'s intelligence layer.',
     inputSchema: {
@@ -331,8 +352,13 @@ export const CACHE_TOOLS: ToolDef[] = [
         type: ['object', 'null'],
         properties: {
           topStories: { type: 'array', items: { type: 'object', properties: {
-            title: { type: 'string' }, category: { type: 'string' }, countryCode: { type: 'string' },
-            isAlert: { type: 'boolean' }, summary: { type: 'string' },
+            primaryTitle: { type: 'string' }, primarySource: { type: 'string' }, primaryLink: { type: 'string' },
+            pubDate: { type: 'string' }, sourceCount: { type: 'number' }, importanceScore: { type: 'number' },
+            velocity: { type: 'object', properties: {
+              level: { type: 'string' }, sourcesPerHour: { type: 'number' },
+            } },
+            category: { type: 'string' }, threatLevel: { type: 'string' },
+            countryCode: { type: ['string', 'null'] }, isAlert: { type: 'boolean' },
           } } },
         },
       },
@@ -386,6 +412,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   },
   {
     name: 'get_natural_disasters',
+    _uiResourceUri: NATURAL_DISASTERS_UI_URI,
     _outputBudgetBytes: 131072,
     description: 'Recent earthquakes (USGS), active wildfires (NASA FIRMS), and natural hazard events. Includes magnitude, location, and threat severity.',
     inputSchema: {
@@ -407,8 +434,13 @@ export const CACHE_TOOLS: ToolDef[] = [
         type: ['object', 'null'],
         properties: {
           earthquakes: { type: 'array', items: { type: 'object', properties: {
-            magnitude: { type: 'number' }, place: { type: 'string' }, time: { type: ['number', 'string'] },
-            latitude: { type: 'number' }, longitude: { type: 'number' }, depth: { type: 'number' },
+            id: { type: 'string' }, place: { type: 'string' }, magnitude: { type: 'number' },
+            depthKm: { type: 'number' }, occurredAt: { type: 'number' }, sourceUrl: { type: 'string' },
+            location: { type: 'object', properties: {
+              latitude: { type: 'number' }, longitude: { type: 'number' },
+            } },
+            nearTestSite: { type: 'boolean' }, testSiteName: { type: 'string' },
+            concernScore: { type: 'number' }, concernLevel: { type: 'string' },
           } } },
         },
       },
@@ -416,8 +448,17 @@ export const CACHE_TOOLS: ToolDef[] = [
         type: ['object', 'null'],
         properties: {
           fireDetections: { type: 'array', items: { type: 'object', properties: {
-            latitude: { type: 'number' }, longitude: { type: 'number' },
-            brightness: { type: 'number' }, confidence: { type: ['number', 'string'] },
+            id: { type: 'string' },
+            location: { type: 'object', properties: {
+              latitude: { type: 'number' }, longitude: { type: 'number' },
+            } },
+            brightness: { type: 'number' }, frp: { type: 'number' },
+            confidence: { type: 'string', enum: [
+              'FIRE_CONFIDENCE_HIGH', 'FIRE_CONFIDENCE_NOMINAL',
+              'FIRE_CONFIDENCE_LOW', 'FIRE_CONFIDENCE_UNSPECIFIED',
+            ] },
+            satellite: { type: 'string' }, detectedAt: { type: 'number' }, region: { type: 'string' },
+            dayNight: { type: 'string' }, possibleExplosion: { type: 'boolean' },
           } } },
         },
       },
@@ -571,7 +612,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   {
     name: 'get_economic_data',
     _outputBudgetBytes: 131072,
-    description: 'Macro economic indicators: Fed Funds rate (FRED), economic calendar events, fuel prices, ECB FX rates, EU yield curve, earnings calendar, COT positioning, energy storage data, BIS household debt service ratio (DSR, quarterly, leading indicator of household financial stress across ~40 advanced economies), and BIS residential + commercial property price indices (real, quarterly).',
+    description: 'Macro economic indicators: Fed Funds rate (FRED), economic calendar events, the normalized China macro snapshot plus official NBS/PBoC release calendar, fuel prices, ECB FX rates, EU yield curve, earnings calendar, COT positioning, energy storage data, BIS household debt service ratio (DSR, quarterly, leading indicator of household financial stress across ~40 advanced economies), and BIS residential + commercial property price indices (real, quarterly).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -579,7 +620,7 @@ export const CACHE_TOOLS: ToolDef[] = [
           type: 'array',
           items: {
             type: 'string',
-            enum: ['fedfunds', 'econ-calendar', 'fuel-prices', 'ecb-fx-rates', 'yield-curve-eu', 'spending', 'earnings-calendar', 'cot', 'dsr', 'property-residential', 'property-commercial'],
+            enum: ['fedfunds', 'econ-calendar', 'china-macro', 'china-release-calendar', 'fuel-prices', 'ecb-fx-rates', 'yield-curve-eu', 'spending', 'earnings-calendar', 'cot', 'dsr', 'property-residential', 'property-commercial'],
           },
           description: 'Restrict the response to one or more sub-datasets. Omit for the full economic bundle.',
         },
@@ -600,6 +641,23 @@ export const CACHE_TOOLS: ToolDef[] = [
         type: ['object', 'null'],
         properties: { events: { type: 'array', items: { type: 'object', properties: {
           country: { type: 'string' }, event: { type: 'string' }, time: { type: ['string', 'number'] },
+        } } } },
+      },
+      'china-macro': {
+        type: ['object', 'null'],
+        properties: {
+          countryCode: { type: 'string' }, launchReady: { type: 'boolean' }, status: { type: 'string' },
+          indicators: { type: 'array', items: { type: 'object', properties: {
+            id: { type: 'string' }, label: { type: 'string' }, category: { type: 'string' },
+            value: { type: ['number', 'null'] }, priorValue: { type: ['number', 'null'] }, unit: { type: 'string' },
+            observationDate: { type: 'string' }, source: { type: 'string' }, stale: { type: 'boolean' }, unavailableReason: { type: 'string' },
+          } } },
+        },
+      },
+      'china-release-calendar': {
+        type: ['object', 'null'],
+        properties: { events: { type: 'array', items: { type: 'object', properties: {
+          event: { type: 'string' }, countryCode: { type: 'string' }, releaseDate: { type: 'string' }, status: { type: 'string' }, source: { type: 'string' },
         } } } },
       },
       'fuel-prices': {
@@ -637,11 +695,14 @@ export const CACHE_TOOLS: ToolDef[] = [
       if (countries.length > 0) {
         narrowNested(data, 'fuel-prices', 'countries', (c) => matchesCode(c.code, countries));
         narrowNested(data, 'econ-calendar', 'events', (e) => matchesCode(e.country, countries));
+        narrowNested(data, 'china-release-calendar', 'events', (e) => matchesCode(e.countryCode, countries));
+        if (!countries.some((code) => code.toUpperCase() === 'CN')) data['china-macro'] = null;
         for (const label of ['dsr', 'property-residential', 'property-commercial']) {
           narrowNested(data, label, 'entries', (e) => matchesCode(e.countryCode, countries));
         }
       }
       capNested(data, 'econ-calendar', 'events', limit);
+      capNested(data, 'china-release-calendar', 'events', limit);
       capNested(data, 'spending', 'awards', limit);
       capNested(data, 'earnings-calendar', 'earnings', limit);
       return selectDatasets(data, argStrList(params.dataset));
@@ -649,6 +710,8 @@ export const CACHE_TOOLS: ToolDef[] = [
     _cacheKeys: [
       'economic:fred:v1:FEDFUNDS:0',
       'economic:econ-calendar:v1',
+      'economic:china:macro:v1',
+      'economic:china:release-calendar:v1',
       'economic:fuel-prices:v1',
       'economic:ecb-fx-rates:v1',
       'economic:yield-curve-eu:v1',
@@ -663,6 +726,8 @@ export const CACHE_TOOLS: ToolDef[] = [
     _maxStaleMin: 1440,
     _freshnessChecks: [
       { key: 'seed-meta:economic:econ-calendar', maxStaleMin: 1440 },
+      { key: 'seed-meta:economic:china-macro', maxStaleMin: 4320 },
+      { key: 'seed-meta:economic:china-release-calendar', maxStaleMin: 4320 },
       // Per-dataset BIS seed-meta keys — the aggregate
       // `seed-meta:economic:bis-extended` would report "fresh" even if only
       // one of the three datasets (DSR / SPP / CPP) is current, matching the
@@ -674,6 +739,7 @@ export const CACHE_TOOLS: ToolDef[] = [
     _apiPaths: [
       "GET /api/economic/v1/get-ecb-fx-rates",
       "GET /api/economic/v1/get-economic-calendar",
+      "GET /api/economic/v1/get-china-macro-snapshot",
       "GET /api/economic/v1/get-eu-yield-curve",
       "GET /api/economic/v1/list-fuel-prices",
       "GET /api/market/v1/get-cot-positioning",
@@ -852,6 +918,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   },
   {
     name: 'get_prediction_markets',
+    _uiResourceUri: PREDICTION_MARKETS_UI_URI,
     _outputBudgetBytes: 131072,
     description: 'Active Polymarket event contracts with current probabilities. Covers geopolitical, economic, and election prediction markets.',
     inputSchema: {
@@ -872,9 +939,21 @@ export const CACHE_TOOLS: ToolDef[] = [
       'markets-bootstrap': {
         type: ['object', 'null'],
         properties: {
-          geopolitical: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, source: { type: 'string' }, probability: { type: 'number' } } } },
-          tech:         { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, source: { type: 'string' }, probability: { type: 'number' } } } },
-          finance:      { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, source: { type: 'string' }, probability: { type: 'number' } } } },
+          geopolitical: { type: 'array', items: { type: 'object', properties: {
+            title: { type: 'string' }, yesPrice: { type: 'number', minimum: 0, maximum: 100 },
+            source: { type: 'string' }, volume: { type: 'number' }, url: { type: 'string' },
+            endDate: { type: 'string' }, regions: { type: 'array', items: { type: 'string' } },
+          } } },
+          tech: { type: 'array', items: { type: 'object', properties: {
+            title: { type: 'string' }, yesPrice: { type: 'number', minimum: 0, maximum: 100 },
+            source: { type: 'string' }, volume: { type: 'number' }, url: { type: 'string' },
+            endDate: { type: 'string' }, regions: { type: 'array', items: { type: 'string' } },
+          } } },
+          finance: { type: 'array', items: { type: 'object', properties: {
+            title: { type: 'string' }, yesPrice: { type: 'number', minimum: 0, maximum: 100 },
+            source: { type: 'string' }, volume: { type: 'number' }, url: { type: 'string' },
+            endDate: { type: 'string' }, regions: { type: 'array', items: { type: 'string' } },
+          } } },
         },
       },
     }),
@@ -1345,6 +1424,10 @@ export const CACHE_TOOLS: ToolDef[] = [
           type: 'string',
           description: 'Filter COMTRADE flows to one commodity — matches the HS code exactly or the commodity description by substring (e.g. "2709" or "crude").',
         },
+        reporter: {
+          type: 'string',
+          description: 'Filter COMTRADE flows to one reporter by numeric reporter code or reporter name (e.g. "156" or "China").',
+        },
         limit: { type: 'number', description: 'Cap each list dataset (carriers, months, flows) to at most this many items (default 30, pass 0 for no cap).' },
       },
       required: [],
@@ -1373,9 +1456,13 @@ export const CACHE_TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     _postFilter: (data, params) => {
       const commodity = argStr(params.commodity);
+      const reporter = argStr(params.reporter);
       const limit = (argNum(params.limit) ?? DEFAULT_LIST_LIMIT);
       if (commodity) {
         narrowNested(data, 'flows', 'flows', (f) => argStr(f.cmdCode) === commodity || ciIncludes(f.cmdDesc, commodity));
+      }
+      if (reporter) {
+        narrowNested(data, 'flows', 'flows', (f) => argStr(f.reporterCode) === reporter || ciIncludes(f.reporterName ?? f.reporter, reporter));
       }
       capNested(data, 'shipping_stress', 'carriers', limit);
       capNested(data, 'customs-revenue', 'months', limit);
@@ -1593,6 +1680,9 @@ export const CACHE_TOOLS: ToolDef[] = [
     // EXCLUDED on purpose: supply_chain:corridorrisk:v1 is an intermediate
     // key whose data flows through supply_chain:transit-summaries:v1
     // (api/health.js:461). U7 will add corridorrisk to EXCLUDED_FROM_MCP.
+    // MCP Apps (`io.modelcontextprotocol/ui`): links the tool to its interactive
+    // ui:// app shell. Single source of truth — registered in ../ui/registry.ts.
+    _uiResourceUri: CHOKEPOINT_MONITOR_UI_URI,
     _cacheKeys: [
       'supply_chain:transit-summaries:v1',          // STANDALONE_KEYS::transitSummaries
       'supply_chain:chokepoint_transits:v1',        // STANDALONE_KEYS::chokepointTransits
@@ -1741,6 +1831,7 @@ export const CACHE_TOOLS: ToolDef[] = [
   },
   {
     name: 'get_forecast_predictions',
+    _uiResourceUri: FORECASTS_UI_URI,
     _outputBudgetBytes: 131072,
     description: 'AI-generated geopolitical and economic forecasts from WorldMonitor\'s predictive models. Covers upcoming risk events and probability assessments.',
     inputSchema: {
@@ -1775,6 +1866,39 @@ export const CACHE_TOOLS: ToolDef[] = [
     _maxStaleMin: 90,
     _apiPaths: [
       "GET /api/forecast/v1/get-forecasts",
+    ],
+  },
+  {
+    name: 'get_forecast_scorecard',
+    _outputBudgetBytes: 65536,
+    description: 'Forecast resolution scorecard with calibration, Brier/log score, domain and generation-origin breakdowns, and pending/judged resolution counts.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    outputSchema: cacheEnvelope({
+      scorecard: {
+        type: ['object', 'null'],
+        properties: {
+          generatedAt: { type: ['number', 'null'] },
+          rollingWindowDays: { type: ['number', 'null'] },
+          totals: { type: ['object', 'null'] },
+          overall: { type: ['object', 'null'] },
+          skill: { type: ['object', 'null'] },
+          byDomain: { type: 'array', items: { type: 'object' } },
+          byGenerationOrigin: { type: 'array', items: { type: 'object' } },
+          calibration: { type: 'array', items: { type: 'object' } },
+          vsMarketSkill: { type: ['object', 'null'] },
+        },
+      },
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    _cacheKeys: ['forecast:scorecard:v1'],
+    _seedMetaKey: 'seed-meta:forecast:scorecard',
+    _maxStaleMin: 2160,
+    _apiPaths: [
+      "GET /api/forecast/v1/get-forecast-scorecard",
     ],
   },
 

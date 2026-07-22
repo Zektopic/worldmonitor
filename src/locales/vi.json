@@ -130,7 +130,50 @@
       "area": "Diện tích"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Tổng quan quốc gia: Trung Quốc",
+      "description": "Tình hình hiện tại về vĩ mô, thị trường, thương mại, năng lượng và mức sẵn sàng vận hành từ các hợp đồng dữ liệu công khai hiện có.",
+      "macroPolicy": "Vĩ mô & Chính sách",
+      "marketCredit": "Thị trường & Tín dụng",
+      "tradeSupply": "Thương mại & Chuỗi cung ứng",
+      "energy": "Năng lượng",
+      "availability": "Hiểm họa & Hàng không",
+      "observed": "Tính đến:",
+      "source": "Nguồn:",
+      "imfGrowth": "Dự báo tăng trưởng của IMF",
+      "creditGdp": "Tín dụng trên GDP",
+      "strategicTrade": "Mức độ rủi ro thương mại chiến lược",
+      "crudeImports": "Nhập khẩu dầu thô",
+      "gasDemand": "Nhu cầu khí đốt",
+      "energyMix": "Cơ cấu nguồn điện",
+      "coal": "than đá",
+      "aviationAvailability": "Mức sẵn sàng hàng không",
+      "hazardAvailability": "Mức sẵn sàng dữ liệu hiểm họa",
+      "noMajorDisruptions": "Không có gián đoạn lớn nào được báo cáo",
+      "activeDisruptions_one": "{{count}} gián đoạn đang hoạt động",
+      "activeDisruptions_other": "{{count}} gián đoạn đang hoạt động",
+      "activeSignals_one": "{{count}} tín hiệu đang hoạt động",
+      "activeSignals_other": "{{count}} tín hiệu đang hoạt động",
+      "aviationSource": "Giám sát hàng không",
+      "hazardSource": "Tín hiệu tình báo quốc gia",
+      "marketSource": "Chỉ số thị trường quốc gia",
+      "ccfiSource": "Sàn giao dịch vận tải biển Thượng Hải",
+      "comtradeSource": "UN Comtrade, bên báo cáo 156",
+      "sourceUnavailable": "Không có nguồn",
+      "macroUnavailable": "Dữ liệu vĩ mô và chính sách hiện không khả dụng.",
+      "marketUnavailable": "Dữ liệu thị trường và tín dụng hiện không khả dụng.",
+      "tradeUnavailable": "Dữ liệu thương mại và chuỗi cung ứng hiện không khả dụng.",
+      "energyUnavailable": "Dữ liệu năng lượng hiện không khả dụng.",
+      "availabilityUnavailable": "Dữ liệu về hiểm họa và hàng không hiện không khả dụng.",
+      "status": {
+        "loading": "Đang tải",
+        "available": "Khả dụng",
+        "partial": "Một phần",
+        "stale": "Cũ",
+        "unavailable": "Không khả dụng"
+      }
+    }
   },
   "header": {
     "world": "THẾ GIỚI",
@@ -583,15 +626,15 @@
       "logCleared": "Đã xóa log.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Khóa Giấy phép",
+          "title": "Khóa giấy phép / API",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Dán giấy phép của bạn để mở khóa mọi nguồn dữ liệu và tính năng AI ngay lập tức."
+          "description": "Người đăng ký API Starter và API Business tạo khóa này trong bảng điều khiển web tại Settings → API Keys. Nếu mất khóa đầy đủ, hãy thu hồi và tạo khóa thay thế."
         },
         "dividerOr": "HOẶC",
         "register": {
-          "title": "Đặt chỗ của bạn",
-          "description": "Chúng tôi đang chuẩn bị ra mắt giấy phép World Monitor. Đăng ký ngay để được ưu tiên — thành viên sớm được quyền truy cập trước và giá ưu đãi.",
-          "submitBtn": "Tham gia Danh sách Chờ"
+          "title": "Bạn cần khóa API?",
+          "description": "Xem worldmonitor.app/docs/api-keys để được hướng dẫn từng bước. Khóa API thủ công yêu cầu gói API Starter hoặc API Business.",
+          "submitBtn": "Xem các gói API"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "CHÂU MỸ",
         "asia": "CHÂU Á",
         "space": "KHÔNG GIAN"
-      }
+      },
+      "play": "Phát",
+      "previewStatus": "Xem trước trực tiếp"
     },
     "positiveNewsFeed": {
       "noStories": "Chưa có bài viết trong danh mục này"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "Hoạt ảnh huy hiệu cập nhật trên tiêu đề bảng",
       "headlineMemoryLabel": "Bộ nhớ tiêu đề",
       "headlineMemoryDesc": "Ghi nhớ tiêu đề đã xem để làm nổi bật tin mới",
-      "streamAlwaysOnLabel": "Giữ luồng trực tiếp luôn chạy",
-      "streamAlwaysOnDesc": "Ngăn Live Cams và Live News tự động tạm dừng khi bạn không hoạt động. Khuyến nghị cho màn hình phụ / bảng tường. Tắt (Eco) để tiết kiệm CPU/băng thông.",
+      "streamAlwaysOnLabel": "Tự động phát luồng trực tiếp trên bảng điều khiển",
+      "streamAlwaysOnDesc": "Tự động khởi động Live News và Live Webcams khi chúng hiển thị. Tắt tùy chọn này để chỉ tải video sau khi bạn nhấp Phát.",
       "analysisFrameworksLabel": "Khung phân tích",
       "analysisFrameworksActivePerPanel": "Hoạt động theo bảng điều khiển",
       "analysisFrameworksSkillLibrary": "Thư viện kỹ năng",
@@ -1300,7 +1345,10 @@
       "tonePositive": "Tích cực",
       "overall": "Tổng thể: {{tone}}",
       "signalTypesEvents": "{{types}} loại tín hiệu • {{events}} sự kiện",
-      "newsSignals": "{{news}} tin tức • {{signals}} tín hiệu"
+      "newsSignals": "{{news}} tin tức • {{signals}} tín hiệu",
+      "provenanceTitle": "Nguồn gốc bài viết: số lượng bài viết được nhập và các nguồn riêng biệt mà bài viết này được chọn từ đó",
+      "compiledFrom": "Được biên soạn từ {{stories}} câu chuyện trên {{sources}} nguồn",
+      "briefFreshness": "Được tạo {{minutes}}m trước · nguồn mới nhất {{hours}}h tuổi"
     },
     "settings": {
       "exportSettings": "Xuất cài đặt",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "Nhập handle YouTube hợp lệ (ví dụ: @TênKênh)",
       "verifying": "Đang xác minh…",
       "hlsUrl": "URL luồng HLS (tùy chọn)",
-      "invalidHlsUrl": "Nhập URL luồng HLS hợp lệ (.m3u8)"
+      "invalidHlsUrl": "Nhập URL luồng HLS hợp lệ (.m3u8)",
+      "playLiveFeed": "Phát luồng trực tiếp",
+      "readyStatus": "Sẵn sàng khi bạn sẵn sàng"
     },
     "map": {
       "showMap": "Hiển thị bản đồ",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "Tín hiệu R&D",
-      "infoTooltip": "Đơn đăng ký sáng chế quốc phòng và hai chiều hàng tuần từ Raytheon, Lockheed, Huawei, DARPA và các tổ chức chiến lược khác. Danh mục: H04B (thông tin liên lạc), H01L (bán dẫn), F42B (đạn dược), G06N (AI), C12N (công nghệ sinh học). Nguồn: USPTO PatentsView.",
+      "infoTooltip": "Đơn đăng ký sáng chế quốc phòng và hai chiều hàng tuần từ Raytheon, Lockheed, Huawei, DARPA và các tổ chức chiến lược khác. Danh mục: H04B (thông tin liên lạc), H01L (bán dẫn), F42B (đạn dược), G06N (AI), C12N (công nghệ sinh học). Nguồn: USPTO Open Data Portal.",
       "loading": "Đang tải đơn đăng ký R&D…",
       "error": "Không thể tải dữ liệu sáng chế.",
       "empty": "Không có đơn đăng ký trong danh mục này.",
@@ -3037,6 +3087,7 @@
     "serverError": "Lỗi máy chủ: {{status}}",
     "unknownError": "Lỗi không xác định",
     "generatedWidget": "Tiện ích được tạo: {{title}}",
+    "saveFailed": "Không thể lưu tiện ích. Vui lòng thử lại.",
     "checkingConnection": "Đang kiểm tra quyền truy cập tiện ích…",
     "preflightConnected": "Đã kết nối với đại lý tiện ích",
     "preflightInvalidKey": "Khóa tiện ích bị từ chối. Cập nhật wm-widget-key và tải lại.",
@@ -3136,5 +3187,18 @@
     "or": "hoặc nhập máy chủ tùy chỉnh",
     "generatingVisualization": "Đang xây dựng trực quan hóa...",
     "visualizationFailed": "Trực quan hóa thất bại"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

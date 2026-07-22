@@ -130,7 +130,54 @@
       "area": "Rozloha"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Přehled země: Čína",
+      "description": "Aktuální makro, trh, obchod, energetika a provozní dostupnost z existujících veřejných datových kontraktů.",
+      "macroPolicy": "Makro a politika",
+      "marketCredit": "Trh a úvěr",
+      "tradeSupply": "Obchod a dodavatelský řetězec",
+      "energy": "Energetika",
+      "availability": "Rizika a letectví",
+      "observed": "K datu:",
+      "source": "Zdroj:",
+      "imfGrowth": "Prognóza růstu MMF",
+      "creditGdp": "Úvěr k HDP",
+      "strategicTrade": "Strategická obchodní expozice",
+      "crudeImports": "Dovoz ropy",
+      "gasDemand": "Poptávka po plynu",
+      "energyMix": "Energetický mix",
+      "coal": "uhlí",
+      "aviationAvailability": "Dostupnost letectví",
+      "hazardAvailability": "Dostupnost rizik",
+      "noMajorDisruptions": "Nebyla hlášena žádná závažná narušení",
+      "activeDisruptions_one": "{{count}} aktivní výpadek",
+      "activeDisruptions_few": "{{count}} aktivní výpadky",
+      "activeDisruptions_many": "{{count}} aktivního výpadku",
+      "activeDisruptions_other": "{{count}} aktivních výpadků",
+      "activeSignals_one": "{{count}} aktivní signál",
+      "activeSignals_few": "{{count}} aktivní signály",
+      "activeSignals_many": "{{count}} aktivního signálu",
+      "activeSignals_other": "{{count}} aktivních signálů",
+      "aviationSource": "Monitoring letectví",
+      "hazardSource": "Signály zpravodajství o zemi",
+      "marketSource": "Národní tržní index",
+      "ccfiSource": "Šanghajská lodní burza",
+      "comtradeSource": "UN Comtrade, vykazující země 156",
+      "sourceUnavailable": "Zdroj nedostupný",
+      "macroUnavailable": "Makroekonomická a politická data jsou momentálně nedostupná.",
+      "marketUnavailable": "Tržní a úvěrová data jsou momentálně nedostupná.",
+      "tradeUnavailable": "Data o obchodu a dodavatelském řetězci jsou momentálně nedostupná.",
+      "energyUnavailable": "Energetická data jsou momentálně nedostupná.",
+      "availabilityUnavailable": "Data o rizicích a letectví jsou momentálně nedostupná.",
+      "status": {
+        "loading": "Načítání",
+        "available": "Dostupné",
+        "partial": "Částečné",
+        "stale": "Zastaralé",
+        "unavailable": "Nedostupné"
+      }
+    }
   },
   "header": {
     "world": "SVĚT",
@@ -583,15 +630,15 @@
       "logCleared": "Protokol vymazán.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Licenční klíč",
+          "title": "Licenční / API klíč",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Vložte svou licenci a okamžitě odemkněte všechny datové zdroje a AI funkce."
+          "description": "Předplatitelé API Starter a API Business vytvoří tento klíč na webovém panelu v části Settings → API Keys. Pokud celý klíč ztratíte, zrušte jej a vytvořte náhradní."
         },
         "dividerOr": "NEBO",
         "register": {
-          "title": "Rezervujte si své místo",
-          "description": "Připravujeme spuštění licencí World Monitor. Zaregistrujte se nyní a buďte první v řadě — první členové získají prioritní přístup a zakladatelské ceny.",
-          "submitBtn": "Zapsat na čekací listinu"
+          "title": "Potřebujete API klíč?",
+          "description": "Podrobný návod najdete na worldmonitor.app/docs/api-keys. Ruční API klíče vyžadují tarif API Starter nebo API Business.",
+          "submitBtn": "Zobrazit tarify API"
         }
       },
       "table": {
@@ -690,7 +737,9 @@
         "space": "VESMÍR"
       },
       "paused": "Webkamery pozastaveny",
-      "pausedIdle": "Webkamery pozastaveny — pohněte myší pro obnovení"
+      "pausedIdle": "Webkamery pozastaveny — pohněte myší pro obnovení",
+      "play": "Přehrát",
+      "previewStatus": "Živý náhled"
     },
     "monitor": {
       "placeholder": "Klíčová slova (oddělená čárkou)",
@@ -1245,8 +1294,8 @@
       "badgeAnimDesc": "Animovat odznáčky aktualizací v záhlaví panelů",
       "headlineMemoryLabel": "Paměť titulků",
       "headlineMemoryDesc": "Zapamatovat si zobrazené titulky pro zvýraznění nových",
-      "streamAlwaysOnLabel": "Ponechat živé streamy spuštěné",
-      "streamAlwaysOnDesc": "Zabrání automatickému pozastavení Live Cams a Live News při nečinnosti. Doporučeno pro druhý monitor / nástěnný dashboard. Vypněte (Eco) pro úsporu CPU a přenosu dat.",
+      "streamAlwaysOnLabel": "Automaticky přehrávat živé streamy na dashboardu",
+      "streamAlwaysOnDesc": "Spustí Live News a Live Webcams automaticky, když jsou viditelné. Nechte vypnuto, aby se video načetlo až po kliknutí na Přehrát.",
       "globeRenderScaleOptions": {
         "1": "Eco (1x)",
         "2": "4K (2x)",
@@ -1290,7 +1339,10 @@
       "signalTypesEvents": "{{types}} typů signálů • {{events}} událostí",
       "newsSignals": "{{news}} zpráv • {{signals}} signálů",
       "sources_few": "{{count}} zdroje",
-      "sources_many": "{{count}} zdrojů"
+      "sources_many": "{{count}} zdrojů",
+      "provenanceTitle": "Původ pokrytí: počet příjatých příběhů a odlišných zdrojů, ze kterých byl tento přehled vybrán",
+      "compiledFrom": "Sestaveno z {{stories}} příběhů z {{sources}} zdrojů",
+      "briefFreshness": "Vygenerováno před {{minutes}}m · nejnovější zdroj starý {{hours}}h"
     },
     "cascade": {
       "filters": {
@@ -1754,7 +1806,9 @@
       "verifying": "Ověřování…",
       "noResults": "Nebyly nalezeny žádné kanály odpovídající \"{{term}}\"",
       "hlsUrl": "URL HLS streamu (volitelné)",
-      "invalidHlsUrl": "Zadejte platnou URL HLS streamu (.m3u8)"
+      "invalidHlsUrl": "Zadejte platnou URL HLS streamu (.m3u8)",
+      "playLiveFeed": "Přehrát živý přenos",
+      "readyStatus": "Připraveno, až budete"
     },
     "map": {
       "showMap": "Zobrazit mapu",
@@ -2232,7 +2286,7 @@
     },
     "defensePatents": {
       "title": "Signál výzkumu a vývoje",
-      "infoTooltip": "Týdenní podání obranných a duálně použitelných patentů od společností Raytheon, Lockheed, Huawei, DARPA a dalších strategických organizací. Kategorie: H04B (komunikace), H01L (polovodiče), F42B (munice), G06N (AI), C12N (biotechnologie). Zdroj: USPTO PatentsView.",
+      "infoTooltip": "Týdenní podání obranných a duálně použitelných patentů od společností Raytheon, Lockheed, Huawei, DARPA a dalších strategických organizací. Kategorie: H04B (komunikace), H01L (polovodiče), F42B (munice), G06N (AI), C12N (biotechnologie). Zdroj: USPTO Open Data Portal.",
       "loading": "Načítání podání výzkumu a vývoje…",
       "error": "Nepodařilo se načíst data patentů.",
       "empty": "V této kategorii nejsou žádná podání.",
@@ -3069,6 +3123,7 @@
     "serverError": "Chyba serveru: {{status}}",
     "unknownError": "Neznámá chyba",
     "generatedWidget": "Vygenerovaný widget: {{title}}",
+    "saveFailed": "Widget se nepodařilo uložit. Zkuste to prosím znovu.",
     "checkingConnection": "Ověřování přístupu k widgetu…",
     "preflightConnected": "Připojeno k agentovi widgetu",
     "preflightInvalidKey": "Klíč widgetu odmítnut. Aktualizujte wm-widget-key a načtěte znovu.",
@@ -3168,5 +3223,18 @@
     "or": "nebo zadejte vlastní server",
     "generatingVisualization": "Vytváření vizualizace...",
     "visualizationFailed": "Vizualizace selhala"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

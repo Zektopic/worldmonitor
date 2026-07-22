@@ -1,6 +1,5 @@
 import { loadFromStorage, saveToStorage } from '@/utils';
 import { clearPanelColSpanEntry, clearPanelSpanEntry } from '@/utils/panel-storage';
-import { sanitizeWidgetHtml } from '@/utils/widget-sanitizer';
 import { getAuthState } from '@/services/auth-state';
 import { isEntitled } from '@/services/entitlements';
 import {
@@ -14,6 +13,18 @@ const MAX_WIDGETS = 10;
 const MAX_HISTORY = 10;
 const MAX_HTML_CHARS = 50_000;
 const MAX_HTML_CHARS_PRO = 80_000;
+
+type WidgetSanitizer = Pick<typeof import('@/utils/widget-sanitizer'), 'sanitizeWidgetHtml'>;
+
+let widgetSanitizerPromise: Promise<WidgetSanitizer> | null = null;
+
+function getWidgetSanitizer(): Promise<WidgetSanitizer> {
+  widgetSanitizerPromise ??= import('@/utils/widget-sanitizer').catch((error) => {
+    widgetSanitizerPromise = null;
+    throw error;
+  });
+  return widgetSanitizerPromise;
+}
 
 function proHtmlKey(id: string): string {
   return `wm-pro-html-${id}`;
@@ -37,7 +48,9 @@ export function loadWidgets(): CustomWidgetSpec[] {
   for (const w of raw) {
     const tier = w.tier === 'pro' ? 'pro' : 'basic';
     if (tier === 'pro') {
-      const proHtml = localStorage.getItem(proHtmlKey(w.id));
+      const sideKeyHtml = localStorage.getItem(proHtmlKey(w.id));
+      const storedHtml = typeof w.html === 'string' ? w.html : '';
+      const proHtml = storedHtml || sideKeyHtml;
       if (!proHtml) {
         // HTML missing — drop widget and clean up spans
         clearPanelSpanEntry(w.id);
@@ -52,31 +65,24 @@ export function loadWidgets(): CustomWidgetSpec[] {
   return result;
 }
 
-export function saveWidget(spec: CustomWidgetSpec): void {
+export async function saveWidget(spec: CustomWidgetSpec): Promise<void> {
   if (spec.tier === 'pro') {
     const proHtml = spec.html.slice(0, MAX_HTML_CHARS_PRO);
-    // Write HTML first (raw localStorage — must be catchable for rollback)
-    try {
-      localStorage.setItem(proHtmlKey(spec.id), proHtml);
-    } catch {
-      throw new Error('Storage quota exceeded saving PRO widget HTML');
-    }
-    // Build metadata entry (no html field)
-    const meta: Omit<CustomWidgetSpec, 'html'> & { html: string } = {
+    const meta: CustomWidgetSpec = {
       ...spec,
-      html: '',
+      html: proHtml,
       conversationHistory: spec.conversationHistory.slice(-MAX_HISTORY),
     };
     const existing = loadFromStorage<CustomWidgetSpec[]>(STORAGE_KEY, []).filter(w => w.id !== spec.id);
     const updated = [...existing, meta].slice(-MAX_WIDGETS);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      try { localStorage.removeItem(proHtmlKey(spec.id)); } catch { /* ignore legacy side-key cleanup */ }
     } catch {
-      // Rollback HTML write
-      localStorage.removeItem(proHtmlKey(spec.id));
-      throw new Error('Storage quota exceeded saving PRO widget metadata');
+      throw new Error('Storage quota exceeded saving PRO widget');
     }
   } else {
+    const { sanitizeWidgetHtml } = await getWidgetSanitizer();
     const trimmed: CustomWidgetSpec = {
       ...spec,
       tier: 'basic',

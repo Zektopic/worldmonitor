@@ -27,6 +27,7 @@
     "serverError": "Greška servera: {{status}}",
     "unknownError": "Nepoznata greška",
     "generatedWidget": "Generirani widget: {{title}}",
+    "saveFailed": "Widget nije moguće spremiti. Pokušajte ponovno.",
     "checkingConnection": "Provjera pristupa widgetu…",
     "preflightConnected": "Povezano s agentom widgeta",
     "preflightInvalidKey": "Ključ widgeta odbijen. Ažuriraj wm-widget-key i ponovno učitaj.",
@@ -205,7 +206,52 @@
       "area": "Površina"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Pregled zemlje: Kina",
+      "description": "Trenutačno stanje makroekonomije, tržišta, trgovine, energetike i operativne dostupnosti iz postojećih javnih podatkovnih ugovora.",
+      "macroPolicy": "Makro i politika",
+      "marketCredit": "Tržište i kredit",
+      "tradeSupply": "Trgovina i opskrbni lanac",
+      "energy": "Energetika",
+      "availability": "Opasnosti i zrakoplovstvo",
+      "observed": "Na dan:",
+      "source": "Izvor:",
+      "imfGrowth": "MMF-ova prognoza rasta",
+      "creditGdp": "Kredit prema BDP-u",
+      "strategicTrade": "Strateška trgovinska izloženost",
+      "crudeImports": "Uvoz sirove nafte",
+      "gasDemand": "Potražnja za plinom",
+      "energyMix": "Struktura proizvodnje struje",
+      "coal": "ugljen",
+      "aviationAvailability": "Dostupnost zrakoplovstva",
+      "hazardAvailability": "Dostupnost opasnosti",
+      "noMajorDisruptions": "Nema prijavljenih većih poremećaja",
+      "activeDisruptions_one": "{{count}} aktivan prekid",
+      "activeDisruptions_few": "{{count}} aktivna prekida",
+      "activeDisruptions_other": "{{count}} aktivnih prekida",
+      "activeSignals_one": "{{count}} aktivan signal",
+      "activeSignals_few": "{{count}} aktivna signala",
+      "activeSignals_other": "{{count}} aktivnih signala",
+      "aviationSource": "Praćenje zrakoplovstva",
+      "hazardSource": "Signali obavještajnih podataka o zemlji",
+      "marketSource": "Nacionalni tržišni indeks",
+      "ccfiSource": "Šangajska brodarska burza",
+      "comtradeSource": "UN Comtrade, izvjestitelj 156",
+      "sourceUnavailable": "Izvor nedostupan",
+      "macroUnavailable": "Makroekonomski i politički podaci trenutačno su nedostupni.",
+      "marketUnavailable": "Tržišni i kreditni podaci trenutačno su nedostupni.",
+      "tradeUnavailable": "Podaci o trgovini i opskrbnom lancu trenutačno su nedostupni.",
+      "energyUnavailable": "Energetski podaci trenutačno su nedostupni.",
+      "availabilityUnavailable": "Podaci o opasnostima i zrakoplovstvu trenutačno su nedostupni.",
+      "status": {
+        "loading": "Učitavanje",
+        "available": "Dostupno",
+        "partial": "Djelomično",
+        "stale": "Zastarjelo",
+        "unavailable": "Nedostupno"
+      }
+    }
   },
   "header": {
     "world": "SVIJET",
@@ -677,18 +723,18 @@
         "heroTitle": "Jedan ključ. Sve uključeno.",
         "heroDescription": "Jedna licenca Svjetskog monitoringa zamjenjuje svaki API ključ i LLM davatelja koji bi inače trebao konfigurirati sam. AI sažetci, obavještenja u realnom vremenu, tržišni podaci, praćenje sukoba, detekcija požara, satelitske slike — sve pokriveno, sve upravljano, bez postave.",
         "apiKey": {
-          "title": "Ključ licence",
+          "title": "Ključ licence / API ključ",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Zalijepi svoju licencu kako bi odmah otključao sve izvore podataka i AI značajke.",
+          "description": "Pretplatnici na API Starter i API Business stvaraju ovaj ključ na web nadzornoj ploči putem Settings → API Keys. Ako izgubiš cijeli ključ, opozovi ga i izradi zamjenski.",
           "statusValid": "LICENCIRANO",
           "statusMissing": "NEMA LICENCE"
         },
         "dividerOr": "ILI",
         "register": {
-          "title": "Rezerviraj svoje mjesto",
-          "description": "Pripremamo lansiranje Svjetskog monitoringa licenci. Registriraj se sada i budi prvi u redu — rani članovi dobivaju prioritetni pristup i cijene za članove osnivače.",
+          "title": "Trebaš API ključ?",
+          "description": "Detaljne upute potraži na worldmonitor.app/docs/api-keys. Ručni API ključevi zahtijevaju plan API Starter ili API Business.",
           "emailPlaceholder": "tvoj@email.com",
-          "submitBtn": "Pridruži se listi čekanja",
+          "submitBtn": "Prikaži API planove",
           "submitting": "Slanje...",
           "success": "Već si na listi! Obavijestit ćemo te prvi.",
           "alreadyRegistered": "Već ste na listi čekanja.",
@@ -813,7 +859,9 @@
         "americas": "AMERIKE",
         "asia": "AZIJA",
         "space": "SVEMIR"
-      }
+      },
+      "play": "Pokreni",
+      "previewStatus": "Pregled uživo"
     },
     "pinnedWebcams": {
       "pinFromMap": "Prikvačite web kameru sa karte"
@@ -1547,8 +1595,8 @@
       "analysisFrameworksFromAgentskills": "Iz agentskills.io",
       "analysisFrameworksPasteJson": "Zalijepi JSON",
       "analysisFrameworksSaveToLibrary": "Spremi u knjižnicu",
-      "streamAlwaysOnLabel": "Održi užive tokove aktivnima",
-      "streamAlwaysOnDesc": "Sprječava automatsku pauziranje živih kamera i živih vijesti kada ste neaktivni. Preporučeno za uporabu na drugim monitorima / tablicama. Onemogući (Eko) za uštedu CPU/propusnosti.",
+      "streamAlwaysOnLabel": "Automatski pokreni prijenose uživo na nadzornoj ploči",
+      "streamAlwaysOnDesc": "Automatski pokreće Live News i Live Webcams kada su vidljivi. Ostavite isključeno kako bi se video učitao tek nakon klika na Pokreni.",
       "frameworkNote": "Primjenjuje se samo na analizu generirane od strane klijenta",
       "loadingServerInsights": "Učitavanje server uvida...",
       "usingCachedBrief": "Korištenje keširanih sažetaka...",
@@ -1575,7 +1623,10 @@
       "overall": "Ukupno: {{tone}}",
       "signalTypesEvents": "{{types}} tipova signala • {{events}} događaja",
       "newsSignals": "{{news}} vijesti • {{signals}} signala",
-      "sources_few": "{{count}} izvora"
+      "sources_few": "{{count}} izvora",
+      "provenanceTitle": "Pokrivanje izvora: koliko je unesenih članaka i različitih izvora odabrano za ovaj sažetak",
+      "compiledFrom": "Sastavljeno od {{stories}} priča iz {{sources}} izvora",
+      "briefFreshness": "Generirano prije {{minutes}}m · najnoviji izvor star {{hours}}h"
     },
     "settings": {
       "dataManagementLabel": "Upravljanje podacima",
@@ -2163,7 +2214,9 @@
       "channelNotFound": "YouTube kanal nije pronađen",
       "verifying": "Provjera…",
       "hlsUrl": "HLS Stream URL (neobavezno)",
-      "invalidHlsUrl": "Unesite validan HLS stream URL (.m3u8)"
+      "invalidHlsUrl": "Unesite validan HLS stream URL (.m3u8)",
+      "playLiveFeed": "Pokreni prijenos uživo",
+      "readyStatus": "Spremno kad ste vi spremni"
     },
     "map": {
       "showMap": "Prikaži mapu",
@@ -2458,7 +2511,7 @@
     },
     "defensePatents": {
       "title": "R&D signal",
-      "infoTooltip": "Tjedna podnošenja obrana i patenta dvojne namjene od strane Raytheona, Lockheed-a, Huawei-a, DARPE-a i drugih strateških organizacija. Kategorije: H04B (komunikacije), H01L (poluvodiči), F42B (municija), G06N (AI), C12N (biotehnologija). Izvor: USPTO PatentsView.",
+      "infoTooltip": "Tjedna podnošenja obrana i patenta dvojne namjene od strane Raytheona, Lockheed-a, Huawei-a, DARPE-a i drugih strateških organizacija. Kategorije: H04B (komunikacije), H01L (poluvodiči), F42B (municija), G06N (AI), C12N (biotehnologija). Izvor: USPTO Open Data Portal.",
       "loading": "Učitavanje R&D podnošenja…",
       "error": "Neuspjelo učitavanje podataka o patentima.",
       "empty": "Nema podnošenja u ovoj kategoriji.",
@@ -3352,5 +3405,18 @@
     "or": "ili unesite prilagođeni poslužitelj",
     "generatingVisualization": "Izrada vizualizacije...",
     "visualizationFailed": "Vizualizacija nije uspjela"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

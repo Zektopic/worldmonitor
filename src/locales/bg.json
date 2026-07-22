@@ -130,7 +130,50 @@
       "area": "Площ"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Преглед на държава: Китай",
+      "description": "Текущо състояние на макроикономика, пазар, търговия, енергетика и оперативна наличност от съществуващите публични договори за данни.",
+      "macroPolicy": "Макро и политика",
+      "marketCredit": "Пазар и кредит",
+      "tradeSupply": "Търговия и вериги на доставки",
+      "energy": "Енергетика",
+      "availability": "Опасности и авиация",
+      "observed": "Към:",
+      "source": "Източник:",
+      "imfGrowth": "Прогноза за растеж на МВФ",
+      "creditGdp": "Кредит към БВП",
+      "strategicTrade": "Стратегическа търговска експозиция",
+      "crudeImports": "Внос на суров петрол",
+      "gasDemand": "Търсене на газ",
+      "energyMix": "Електроенергиен микс",
+      "coal": "въглища",
+      "aviationAvailability": "Наличност на авиацията",
+      "hazardAvailability": "Наличност на опасностите",
+      "noMajorDisruptions": "Няма съобщени сериозни смущения",
+      "activeDisruptions_one": "{{count}} активно прекъсване",
+      "activeDisruptions_other": "{{count}} активни прекъсвания",
+      "activeSignals_one": "{{count}} активен сигнал",
+      "activeSignals_other": "{{count}} активни сигнала",
+      "aviationSource": "Авиационен мониторинг",
+      "hazardSource": "Сигнали от държавното разузнаване",
+      "marketSource": "Национален пазарен индекс",
+      "ccfiSource": "Шанхайска корабна борса",
+      "comtradeSource": "UN Comtrade, докладваща страна 156",
+      "sourceUnavailable": "Източникът не е наличен",
+      "macroUnavailable": "Макроикономическите и политическите данни в момента не са налични.",
+      "marketUnavailable": "Пазарните и кредитните данни в момента не са налични.",
+      "tradeUnavailable": "Данните за търговия и вериги на доставки в момента не са налични.",
+      "energyUnavailable": "Енергийните данни в момента не са налични.",
+      "availabilityUnavailable": "Данните за опасности и авиация в момента не са налични.",
+      "status": {
+        "loading": "Зареждане",
+        "available": "Налично",
+        "partial": "Частично",
+        "stale": "Остаряло",
+        "unavailable": "Неналично"
+      }
+    }
   },
   "header": {
     "world": "СВЯТ",
@@ -583,15 +626,15 @@
       "logCleared": "Дневник изчистен.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Лицензионен ключ",
+          "title": "Лицензионен / API ключ",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Поставете лиценза си, за да отключите всеки източник на данни и AI функция веднага."
+          "description": "Абонатите на API Starter и API Business създават този ключ в уеб таблото от Settings → API Keys. Ако пълният ключ е изгубен, отменете го и създайте нов."
         },
         "dividerOr": "ИЛИ",
         "register": {
-          "title": "Резервирайте място",
-          "description": "Подготвяме се да стартираме лицензи на War Monitor. Регистрирайте се сега и бъдете първи в редицата — ранните членове получават приоритетен достъп и цена на основател.",
-          "submitBtn": "Присъедини се към списъка на очакване"
+          "title": "Нуждаете се от API ключ?",
+          "description": "Вижте worldmonitor.app/docs/api-keys за инструкции стъпка по стъпка. Ръчните API ключове изискват план API Starter или API Business.",
+          "submitBtn": "Вижте API плановете"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "АМЕРИКИ",
         "asia": "АЗИЯ",
         "space": "КОСМОС"
-      }
+      },
+      "play": "Пуск",
+      "previewStatus": "Преглед на живо"
     },
     "positiveNewsFeed": {
       "noStories": "Все още няма истории в тази категория"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "Анимирайте актуализирани значки на заглавките на панели",
       "headlineMemoryLabel": "Памет на заглавие",
       "headlineMemoryDesc": "Помните видяни заглавия, за да изтеглите нови истории",
-      "streamAlwaysOnLabel": "Поддържай потоците на живо активни",
-      "streamAlwaysOnDesc": "Предотвратява автоматичното паузиране на Live Cams и Live News при неактивност. Препоръчително за втори монитор / wallboard. Изключете (Eco), за да спестите CPU/трафик.",
+      "streamAlwaysOnLabel": "Автоматично пускане на живи потоци на таблото",
+      "streamAlwaysOnDesc": "Стартира Live News и Live Webcams автоматично, когато са видими. Оставете изключено, за да се зарежда видео само след натискане на Пуск.",
       "analysisFrameworksLabel": "Аналитични рамки",
       "analysisFrameworksActivePerPanel": "Активни по панел",
       "analysisFrameworksSkillLibrary": "Библиотека на умения",
@@ -1300,7 +1345,10 @@
       "tonePositive": "Положителен",
       "overall": "Обобщено: {{tone}}",
       "signalTypesEvents": "{{types}} типа сигнали • {{events}} събития",
-      "newsSignals": "{{news}} новини • {{signals}} сигнали"
+      "newsSignals": "{{news}} новини • {{signals}} сигнали",
+      "provenanceTitle": "Произход на обхвата: колко включени истории и отделни източници е избрано от този преглед",
+      "compiledFrom": "Събрано от {{stories}} истории в {{sources}} източници",
+      "briefFreshness": "Генериран преди {{minutes}}м · най-нов източник {{hours}}ч стар"
     },
     "settings": {
       "exportSettings": "Експорт на настройки",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "Въведете валидна YouTube манипулатор (напр. @ChannelName)",
       "verifying": "Проверка…",
       "hlsUrl": "URL на HLS поток (незадължително)",
-      "invalidHlsUrl": "Въведете валиден URL на HLS поток (.m3u8)"
+      "invalidHlsUrl": "Въведете валиден URL на HLS поток (.m3u8)",
+      "playLiveFeed": "Пусни живото предаване",
+      "readyStatus": "Готово, когато сте готови"
     },
     "map": {
       "showMap": "Показване на карта",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "R&D Signal",
-      "infoTooltip": "Седмични регистрации на патенти в областта на отбраната и двойната употреба от Raytheon, Lockheed, Huawei, DARPA и други стратегически организации. Категории: H04B (комуникации), H01L (полупроводници), F42B (боеприпаси), G06N (AI), C12N (биотехнология). Източник: USPTO PatentsView.",
+      "infoTooltip": "Седмични регистрации на патенти в областта на отбраната и двойната употреба от Raytheon, Lockheed, Huawei, DARPA и други стратегически организации. Категории: H04B (комуникации), H01L (полупроводници), F42B (боеприпаси), G06N (AI), C12N (биотехнология). Източник: USPTO Open Data Portal.",
       "loading": "Зареждане на R&D регистрации…",
       "error": "Неудачно зареждане на патентни данни.",
       "empty": "Няма регистрации в тази категория.",
@@ -3037,6 +3087,7 @@
     "serverError": "Грешка на сървъра: {{status}}",
     "unknownError": "Неизвестна грешка",
     "generatedWidget": "Генериран уиджет: {{title}}",
+    "saveFailed": "Приспособлението не можа да бъде запазено. Опитайте отново.",
     "checkingConnection": "Проверка на достъп до уиджет…",
     "preflightConnected": "Свързан със агент за уиджети",
     "preflightInvalidKey": "Ключ на уиджет отхвърлен. Актуализирай wm-widget-key и презареди.",
@@ -3136,5 +3187,18 @@
     "or": "или въведете персонализиран сървър",
     "generatingVisualization": "Построяване на визуализация...",
     "visualizationFailed": "Визуализацията не успя"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

@@ -542,6 +542,22 @@ describe('panel guardrails — cw- prefix handling', () => {
     );
   });
 
+  it('shows an accessible save failure message when widget persistence rejects', () => {
+    assert.match(
+      events,
+      /failed to save widget[\s\S]{0,220}showToast\(t\('widgets\.saveFailed'\)\)/,
+      'Modifying a widget must surface a rejected save to the user',
+    );
+    const createFailureHandlers = layout.match(
+      /failed to add widget[\s\S]{0,220}showToast\(t\('widgets\.saveFailed'\)\)/g,
+    ) ?? [];
+    assert.equal(
+      createFailureHandlers.length,
+      2,
+      'Both widget create entry points must surface a rejected save to the user',
+    );
+  });
+
   it('panel-layout loads widgets when feature is enabled', () => {
     assert.ok(
       layout.includes('hasPremiumAccess') || layout.includes('isProUser'),
@@ -821,6 +837,7 @@ describe('i18n — widgets section completeness', () => {
     'preflightInvalidKey',
     'preflightUnavailable',
     'preflightAiUnavailable',
+    'saveFailed',
     'readyToGenerate',
     'readyToApply',
     'modifyHint',
@@ -993,7 +1010,7 @@ describe('PRO widget — relay auth and configuration', () => {
       'getWidgetAgentProvidedProKey function must be defined',
     );
     // The PRO key comparison is near the 403 rejection — find it directly
-    const keyCompareIdx = relay.indexOf('providedProKey !== PRO_WIDGET_KEY');
+    const keyCompareIdx = relay.indexOf('!safeTokenEquals(providedProKey, PRO_WIDGET_KEY)');
     assert.ok(keyCompareIdx !== -1, 'PRO key comparison must be present');
     const region = relay.slice(keyCompareIdx, keyCompareIdx + 200);
     assert.ok(region.includes('403'), 'Wrong PRO key must return 403');
@@ -1113,29 +1130,38 @@ describe('PRO widget — store and sanitizer', () => {
     );
   });
 
-  it('PRO HTML stored in separate wm-pro-html-{id} key', () => {
+  it('legacy wm-pro-html-{id} key remains supported for old PRO widgets', () => {
     assert.ok(
       store.includes('wm-pro-html-'),
-      "PRO HTML must be stored in 'wm-pro-html-{id}' separate localStorage key",
+      "PRO HTML must still know the legacy 'wm-pro-html-{id}' localStorage key",
     );
   });
 
-  it('loadWidgets hydrates PRO HTML from separate key', () => {
+  it('loadWidgets can hydrate legacy PRO HTML from the side key', () => {
     const loadIdx = store.indexOf('function loadWidgets');
     assert.ok(loadIdx !== -1, 'loadWidgets not found');
     const loadBody = store.slice(loadIdx, loadIdx + 600);
     assert.ok(
-      loadBody.includes('proHtml') || loadBody.includes('wm-pro-html'),
-      'loadWidgets must read PRO HTML from separate key',
+      /localStorage\.getItem\(proHtmlKey\(w\.id\)\)/.test(loadBody),
+      'loadWidgets must read legacy PRO HTML from the side key',
     );
   });
 
-  it("loadWidgets drops PRO entry when wm-pro-html-{id} is missing", () => {
+  it('loadWidgets treats canonical PRO HTML as primary before legacy side key', () => {
     const loadIdx = store.indexOf('function loadWidgets');
-    const loadBody = store.slice(loadIdx, loadIdx + 600);
+    const loadBody = store.slice(loadIdx, loadIdx + 900);
     assert.ok(
-      loadBody.includes('continue') || loadBody.includes('skip'),
-      'loadWidgets must skip/drop PRO entries with missing HTML key',
+      loadBody.includes('storedHtml || sideKeyHtml'),
+      'loadWidgets must prefer canonical widget HTML before the legacy side key',
+    );
+  });
+
+  it('loadWidgets drops PRO entry only when no persisted HTML remains', () => {
+    const loadIdx = store.indexOf('function loadWidgets');
+    const loadBody = store.slice(loadIdx, loadIdx + 900);
+    assert.ok(
+      loadBody.includes('if (!proHtml)') && loadBody.includes('continue'),
+      'loadWidgets must skip/drop PRO entries only when no HTML exists in either storage path',
     );
   });
 
@@ -1149,12 +1175,16 @@ describe('PRO widget — store and sanitizer', () => {
     );
   });
 
-  it('saveWidget for PRO rolls back HTML key if metadata write fails', () => {
+  it('saveWidget for PRO does not duplicate HTML into the legacy side key', () => {
     const saveIdx = store.indexOf('function saveWidget');
     const saveBody = store.slice(saveIdx, saveIdx + 800);
     assert.ok(
-      saveBody.includes('removeItem') || saveBody.includes('rollback'),
-      'saveWidget must rollback (removeItem) PRO HTML key if metadata write throws',
+      !saveBody.includes('localStorage.setItem(proHtmlKey'),
+      'saveWidget must not write duplicate PRO HTML to the legacy side key',
+    );
+    assert.ok(
+      saveBody.includes('localStorage.removeItem(proHtmlKey'),
+      'saveWidget should clean up legacy PRO HTML side keys after a canonical save',
     );
   });
 
@@ -1323,7 +1353,7 @@ describe('PRO widget — store and sanitizer', () => {
   });
 
   it('widget sandbox behavior accepts Vercel previews and blocks spoofed parents', () => {
-    const script = sandbox.match(/<script>\n([\s\S]*)\n<\/script>/)?.[1];
+    const script = sandbox.match(/<script>\r?\n([\s\S]*?)\r?\n<\/script>/)?.[1];
     assert.ok(script, 'sandbox inline script not found');
 
     function runSandbox(referrer) {

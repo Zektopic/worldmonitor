@@ -11,13 +11,16 @@ const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8
   scripts?: Record<string, string>;
 };
 const packageScripts = packageJson.scripts ?? {};
-const deployGateWorkflow = readFileSync(resolve(workflowsDir, 'deploy-gate.yml'), 'utf8');
-const securityAuditWorkflow = readFileSync(resolve(workflowsDir, 'security-audit.yml'), 'utf8');
-const securityAuditScript = readFileSync(resolve(root, '.github/scripts/audit-production-dependencies.mjs'), 'utf8');
-const testWorkflow = readFileSync(resolve(workflowsDir, 'test.yml'), 'utf8');
+const read = (p: string) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
+
+const deployGateWorkflow = read(resolve(workflowsDir, 'deploy-gate.yml'));
+const securityAuditWorkflow = read(resolve(workflowsDir, 'security-audit.yml'));
+const securityAuditScript = read(resolve(root, '.github/scripts/audit-production-dependencies.mjs'));
+const testWorkflow = read(resolve(workflowsDir, 'test.yml'));
+const lintCodeWorkflow = read(resolve(workflowsDir, 'lint-code.yml'));
 const workflowText = readdirSync(workflowsDir)
   .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
-  .map((name) => readFileSync(resolve(workflowsDir, name), 'utf8'))
+  .map((name) => read(resolve(workflowsDir, name)))
   .join('\n');
 
 const REQUIRED_PR_SCRIPTS = [
@@ -37,6 +40,7 @@ const REQUIRED_TEST_JOBS = [
 ] as const;
 
 const TIMEOUT_CAPPED_TEST_JOBS = [
+  'consumer-prices',
   'sidecar',
   'convex-tests',
   'variant-smoke-full',
@@ -48,6 +52,7 @@ const REQUIRED_GATE_WORKFLOWS = ['Test', 'Typecheck', 'Lint Code', 'Security Aud
 const REQUIRED_NON_TEST_GATE_CHECKS = [
   'typecheck',
   'biome',
+  'public-docs',
   'security-audit',
 ] as const;
 
@@ -72,6 +77,12 @@ function workflowRegexNeedle(path: string): string {
 function testJobBlock(job: string): string {
   const match = testWorkflow.match(new RegExp(`\\n  ${escapeRegExp(job)}:\\n[\\s\\S]*?(?=\\n  [\\w-]+:\\n|\\n$)`));
   assert.ok(match, `test.yml must define ${job}`);
+  return match[0];
+}
+
+function workflowJobBlock(workflow: string, job: string): string {
+  const match = workflow.match(new RegExp(`\\n  ${escapeRegExp(job)}:\\n[\\s\\S]*?(?=\\n  [\\w-]+:\\n|\\n$)`));
+  assert.ok(match, `workflow must define ${job}`);
   return match[0];
 }
 
@@ -123,6 +134,13 @@ function collectPackageLockfiles(): string[] {
     .sort();
 }
 
+function collectDockerfiles(): string[] {
+  return execFileSync('git', ['ls-files', '*Dockerfile*'], { cwd: root, encoding: 'utf8' })
+    .split('\n')
+    .filter((file) => /(^|\/)Dockerfile(\.|$)/.test(file))
+    .sort();
+}
+
 function securityAuditMatrixLockfiles(): string[] {
   return Array.from(securityAuditWorkflow.matchAll(/^\s+lockfile:\s+(.+)$/gm), ([, value]) =>
     value.trim().replace(/^['"]|['"]$/g, ''),
@@ -130,6 +148,13 @@ function securityAuditMatrixLockfiles(): string[] {
 }
 
 describe('CI workflow coverage', () => {
+  it('runs the public documentation boundary on docs-only pull requests', () => {
+    const publicDocsJob = workflowJobBlock(lintCodeWorkflow, 'public-docs');
+
+    assert.match(publicDocsJob, /npm run lint:public-docs/);
+    assert.doesNotMatch(publicDocsJob, /needs: changes/);
+  });
+
   it('keeps required PR smoke scripts defined and wired into workflows', () => {
     for (const script of REQUIRED_PR_SCRIPTS) {
       assert.equal(typeof packageScripts[script], 'string', `package.json must define ${script}`);
@@ -252,5 +277,75 @@ describe('CI workflow coverage', () => {
         `security-audit.yml must cover ${lockfile}`,
       );
     }
+  });
+
+  it('keeps Docker base images pinned to immutable digests', () => {
+    const failures: string[] = [];
+
+    for (const dockerfile of collectDockerfiles()) {
+      const aliases = new Set<string>();
+      const source = readFileSync(resolve(root, dockerfile), 'utf8');
+      const lines = source.split('\n');
+
+      lines.forEach((line, index) => {
+        const match = line.match(/^FROM\s+(.+)$/i);
+        if (!match) return;
+
+        const parts = match[1].trim().split(/\s+/);
+        while (parts[0]?.startsWith('--')) {
+          parts.shift();
+        }
+
+        const image = parts[0];
+        const asIndex = parts.findIndex((part) => part.toUpperCase() === 'AS');
+        const alias = asIndex >= 0 ? parts[asIndex + 1] : undefined;
+        const isKnownStage = image ? aliases.has(image) : false;
+        if (alias) {
+          aliases.add(alias);
+        }
+
+        if (!image || image === 'scratch' || isKnownStage) return;
+
+        if (!/@sha256:[0-9a-f]{64}$/i.test(image)) {
+          failures.push(`${dockerfile}:${index + 1} ${line.trim()}`);
+        }
+      });
+    }
+
+    assert.deepEqual(
+      failures,
+      [],
+      `Docker FROM images must be pinned with full @sha256:<64 hex> digests:\n${failures.join('\n')}`,
+    );
+  });
+
+  it('keeps GitHub Actions external uses pinned to commit SHAs', () => {
+    const failures: string[] = [];
+    const workflowFiles = readdirSync(workflowsDir)
+      .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
+      .sort();
+
+    for (const workflowFile of workflowFiles) {
+      const source = readFileSync(resolve(workflowsDir, workflowFile), 'utf8');
+      const lines = source.split('\n');
+
+      lines.forEach((line, index) => {
+        const match = line.match(/^\s*uses:\s*([^@\s#]+)@([^\s#]+)/);
+        if (!match) return;
+
+        const [, action, ref] = match;
+        if (action.startsWith('./') || action.startsWith('docker://')) return;
+
+        if (!/^[0-9a-f]{40}$/i.test(ref)) {
+          failures.push(`${workflowFile}:${index + 1} ${line.trim()}`);
+        }
+      });
+    }
+
+    assert.deepEqual(
+      failures,
+      [],
+      `GitHub Actions uses refs must be 40-character commit SHAs:\n${failures.join('\n')}`,
+    );
   });
 });

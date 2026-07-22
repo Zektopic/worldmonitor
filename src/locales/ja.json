@@ -130,7 +130,50 @@
       "area": "面積"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "中国カントリースナップショット",
+      "description": "既存の公開データ契約に基づくマクロ・市場・貿易・エネルギー・運用可用性の現況。",
+      "macroPolicy": "マクロ・政策",
+      "marketCredit": "市場・信用",
+      "tradeSupply": "貿易・サプライチェーン",
+      "energy": "エネルギー",
+      "availability": "災害・航空",
+      "observed": "基準日:",
+      "source": "出典:",
+      "imfGrowth": "IMF成長率見通し",
+      "creditGdp": "信用残高対GDP比",
+      "strategicTrade": "戦略的貿易エクスポージャー",
+      "crudeImports": "原油輸入量",
+      "gasDemand": "ガス需要",
+      "energyMix": "電源構成",
+      "coal": "石炭",
+      "aviationAvailability": "航空の可用性",
+      "hazardAvailability": "災害シグナルの可用性",
+      "noMajorDisruptions": "重大な障害は報告されていません",
+      "activeDisruptions_one": "{{count}}件のアクティブな障害",
+      "activeDisruptions_other": "{{count}}件のアクティブな障害",
+      "activeSignals_one": "{{count}}件のアクティブなシグナル",
+      "activeSignals_other": "{{count}}件のアクティブなシグナル",
+      "aviationSource": "航空モニタリング",
+      "hazardSource": "国別インテリジェンスシグナル",
+      "marketSource": "国別市場指数",
+      "ccfiSource": "上海航運取引所",
+      "comtradeSource": "国連Comtrade（報告国156）",
+      "sourceUnavailable": "出典不明",
+      "macroUnavailable": "マクロ・政策データは現在利用できません。",
+      "marketUnavailable": "市場・信用データは現在利用できません。",
+      "tradeUnavailable": "貿易・サプライチェーンデータは現在利用できません。",
+      "energyUnavailable": "エネルギーデータは現在利用できません。",
+      "availabilityUnavailable": "災害・航空の可用性データは現在利用できません。",
+      "status": {
+        "loading": "読み込み中",
+        "available": "利用可能",
+        "partial": "一部利用可能",
+        "stale": "古いデータ",
+        "unavailable": "利用不可"
+      }
+    }
   },
   "header": {
     "world": "世界",
@@ -583,15 +626,15 @@
       "logCleared": "ログをクリア済。",
       "worldMonitor": {
         "apiKey": {
-          "title": "ライセンスキー",
+          "title": "ライセンス / APIキー",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "ライセンスを貼り付けると、すべてのデータソースとAI機能が即座に利用可能になります。"
+          "description": "API StarterまたはAPI Businessの利用者は、ウェブダッシュボードのSettings → API Keysからこのキーを作成します。完全なキーを紛失した場合は、失効させて新しいキーを作成してください。"
         },
         "dividerOr": "または",
         "register": {
-          "title": "あなたの席を確保",
-          "description": "World Monitorライセンスのローンチ準備中です。今すぐ登録して優先アクセスと創設メンバー価格を手に入れましょう。",
-          "submitBtn": "ウェイトリストに参加"
+          "title": "APIキーが必要ですか？",
+          "description": "手順についてはworldmonitor.app/docs/api-keysをご覧ください。手動APIキーにはAPI StarterまたはAPI Businessプランが必要です。",
+          "submitBtn": "APIプランを見る"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "アメリカ",
         "asia": "アジア",
         "space": "宇宙"
-      }
+      },
+      "play": "再生",
+      "previewStatus": "ライブプレビュー"
     },
     "positiveNewsFeed": {
       "noStories": "このカテゴリにはまだ記事がありません"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "パネルヘッダーの更新バッジをアニメーション表示",
       "headlineMemoryLabel": "ヘッドラインメモリ",
       "headlineMemoryDesc": "閲覧済みの見出しを記憶して新着を強調",
-      "streamAlwaysOnLabel": "ライブ配信を常に実行",
-      "streamAlwaysOnDesc": "アイドル時に Live Cams と Live News が自動一時停止されるのを防ぎます。セカンドモニター / 壁面ダッシュボード用途に推奨。CPU/帯域を節約するには（Eco）を無効にしてください。",
+      "streamAlwaysOnLabel": "ダッシュボードでライブストリームを自動再生",
+      "streamAlwaysOnDesc": "Live News と Live Webcams が表示されたときに自動的に開始します。動画を「再生」をクリックした後だけ読み込むにはオフのままにしてください。",
       "analysisFrameworksLabel": "分析フレームワーク",
       "analysisFrameworksActivePerPanel": "パネルごとのアクティブ",
       "analysisFrameworksSkillLibrary": "スキルライブラリ",
@@ -1300,7 +1345,10 @@
       "tonePositive": "ポジティブ",
       "overall": "全体: {{tone}}",
       "signalTypesEvents": "{{types}} シグナルタイプ • {{events}} イベント",
-      "newsSignals": "{{news}} ニュース • {{signals}} シグナル"
+      "newsSignals": "{{news}} ニュース • {{signals}} シグナル",
+      "provenanceTitle": "カバレッジプロヴェナンス: このブリーフが選択された取り込まれたストーリーと個別ソースの数",
+      "compiledFrom": "{{stories}}件のストーリーから{{sources}}個のソースをコンパイル",
+      "briefFreshness": "{{minutes}}m前に生成 · 最新ソース{{hours}}h前"
     },
     "settings": {
       "exportSettings": "設定をエクスポート",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "有効なYouTubeハンドルを入力してください（例: @ChannelName）",
       "verifying": "確認中…",
       "hlsUrl": "HLSストリームURL（任意）",
-      "invalidHlsUrl": "有効なHLSストリームURL（.m3u8）を入力してください"
+      "invalidHlsUrl": "有効なHLSストリームURL（.m3u8）を入力してください",
+      "playLiveFeed": "ライブフィードを再生",
+      "readyStatus": "準備ができたら再生できます"
     },
     "map": {
       "showMap": "地図を表示",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "R&D シグナル",
-      "infoTooltip": "レイセオン、ロッキード、ファーウェイ、DARPA およびその他の戦略的組織による週単位の防衛・デュアルユース特許出願。カテゴリ: H04B (通信)、H01L (半導体)、F42B (弾薬)、G06N (AI)、C12N (バイオテク)。出典: USPTO PatentsView。",
+      "infoTooltip": "レイセオン、ロッキード、ファーウェイ、DARPA およびその他の戦略的組織による週単位の防衛・デュアルユース特許出願。カテゴリ: H04B (通信)、H01L (半導体)、F42B (弾薬)、G06N (AI)、C12N (バイオテク)。出典: USPTO Open Data Portal。",
       "loading": "R&D 出願を読み込み中…",
       "error": "特許データの読み込みに失敗しました。",
       "empty": "このカテゴリに出願はありません。",
@@ -3037,6 +3087,7 @@
     "serverError": "サーバーエラー: {{status}}",
     "unknownError": "不明なエラー",
     "generatedWidget": "生成されたウィジェット: {{title}}",
+    "saveFailed": "ウィジェットを保存できませんでした。もう一度お試しください。",
     "checkingConnection": "ウィジェットアクセスを確認中…",
     "preflightConnected": "ウィジェットエージェントに接続しました",
     "preflightInvalidKey": "ウィジェットキーが拒否されました。wm-widget-keyを更新して再読み込みしてください。",
@@ -3136,5 +3187,18 @@
     "or": "またはカスタムサーバーを入力",
     "generatingVisualization": "ビジュアライゼーションを生成中...",
     "visualizationFailed": "ビジュアライゼーションに失敗しました"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

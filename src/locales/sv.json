@@ -447,15 +447,15 @@
       "logCleared": "Loggen rensad.",
       "worldMonitor": {
         "apiKey": {
-          "description": "Klistra in din licens för att omedelbart låsa upp alla datakällor och AI-funktioner.",
+          "description": "Prenumeranter på API Starter och API Business skapar nyckeln i webbpanelen via Settings → API Keys. Om den fullständiga nyckeln går förlorad ska du återkalla den och skapa en ny.",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "title": "Licensnyckel"
+          "title": "Licens- / API-nyckel"
         },
         "dividerOr": "ELLER",
         "register": {
-          "description": "Vi förbereder lanseringen av World Monitor-licenser. Registrera dig nu och bli först i kön — tidiga medlemmar får prioriterad tillgång och grundarpriser.",
-          "submitBtn": "Gå med i väntelistan",
-          "title": "Reservera din plats"
+          "description": "Se worldmonitor.app/docs/api-keys för stegvisa instruktioner. Manuella API-nycklar kräver abonnemanget API Starter eller API Business.",
+          "submitBtn": "Visa API-abonnemang",
+          "title": "Behöver du en API-nyckel?"
         }
       },
       "shellTitle": "World Monitor-inställningar",
@@ -486,7 +486,9 @@
         "space": "RYMDEN"
       },
       "paused": "Webbkameror pausade",
-      "pausedIdle": "Webbkameror pausade — flytta musen för att återuppta"
+      "pausedIdle": "Webbkameror pausade — flytta musen för att återuppta",
+      "play": "Spela",
+      "previewStatus": "Liveförhandsvisning"
     },
     "playback": {
       "live": "LIVE",
@@ -1229,8 +1231,8 @@
       "badgeAnimDesc": "Animera uppdateringsemblem i panelrubriker",
       "headlineMemoryLabel": "Rubrikminne",
       "headlineMemoryDesc": "Kom ihåg sedda rubriker för att markera nya",
-      "streamAlwaysOnLabel": "Håll liveströmmar igång",
-      "streamAlwaysOnDesc": "Förhindrar att Live Cams och Live News pausas automatiskt när du är inaktiv. Rekommenderas för andra skärmen / wallboard-användning. Stäng av (Eco) för att spara CPU/bandbredd.",
+      "streamAlwaysOnLabel": "Spela upp liveströmmar automatiskt på instrumentpanelen",
+      "streamAlwaysOnDesc": "Startar Live News och Live Webcams automatiskt när de är synliga. Lämna avstängt för att ladda video först efter att du klickar på Spela.",
       "globeRenderScaleOptions": {
         "1": "Eco (1x)",
         "2": "4K (2x)",
@@ -1272,7 +1274,10 @@
       "tonePositive": "Positiv",
       "overall": "Totalt: {{tone}}",
       "signalTypesEvents": "{{types}} signaltyper • {{events}} händelser",
-      "newsSignals": "{{news}} nyheter • {{signals}} signaler"
+      "newsSignals": "{{news}} nyheter • {{signals}} signaler",
+      "provenanceTitle": "Täckningshärkomst: hur många inmatade historier och unika källor denna kortfattade sammanfattning valdes från",
+      "compiledFrom": "Kompilerat från {{stories}} berättelser från {{sources}} källor",
+      "briefFreshness": "Genererad {{minutes}}m sedan · senaste källa {{hours}}h gammal"
     },
     "techHubs": {
       "infoTooltip": "<strong>Teknisk hubbaktivitet</strong><br>Visar tekniska nav med mest nyhetsaktivitet.<br><br><em>Aktivitetsnivåer:</em><br>• <span style=\"color: {{highColor}}\">Hög</span> — Nyheter från 50+ PH_• 50+ stil: {{elevatedColor}}\">Höjd</span> — Poäng 20-49<br>• <span style=\"color: {{lowColor}}\">Låg</span> — Poäng under 20<br><br>Klicka på ett nav för att zooma till dess plats."
@@ -1443,7 +1448,9 @@
       "verifying": "Verifierar…",
       "noResults": "Inga kanaler hittades för \"{{term}}\"",
       "hlsUrl": "HLS-ström-URL (valfritt)",
-      "invalidHlsUrl": "Ange en giltig HLS-ström-URL (.m3u8)"
+      "invalidHlsUrl": "Ange en giltig HLS-ström-URL (.m3u8)",
+      "playLiveFeed": "Spela liveflöde",
+      "readyStatus": "Redo när du är det"
     },
     "securityAdvisories": {
       "loading": "Hämtar resevarningar...",
@@ -1999,7 +2006,7 @@
     },
     "defensePatents": {
       "title": "FoU-signal",
-      "infoTooltip": "Veckovisa ansökningar för försvars- och dual-use-patent från Raytheon, Lockheed, Huawei, DARPA och andra strategiska organisationer. Kategorier: H04B (kommunikation), H01L (halvledare), F42B (ammunition), G06N (AI), C12N (bioteknik). Källa: USPTO PatentsView.",
+      "infoTooltip": "Veckovisa ansökningar för försvars- och dual-use-patent från Raytheon, Lockheed, Huawei, DARPA och andra strategiska organisationer. Kategorier: H04B (kommunikation), H01L (halvledare), F42B (ammunition), G06N (AI), C12N (bioteknik). Källa: USPTO Open Data Portal.",
       "loading": "Läser in FoU-ansökningar…",
       "error": "Kunde inte läsa in patentdata.",
       "empty": "Inga ansökningar i denna kategori.",
@@ -2987,7 +2994,50 @@
     "retryBtn": "Försök igen",
     "closeBtn": "Stäng",
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Landsöversikt Kina",
+      "description": "Aktuell makro-, marknads-, handels-, energi- och driftstillgänglighet från befintliga publika datakontrakt.",
+      "macroPolicy": "Makro & politik",
+      "marketCredit": "Marknad & kredit",
+      "tradeSupply": "Handel & leveranskedja",
+      "energy": "Energi",
+      "availability": "Faror & luftfart",
+      "observed": "Per:",
+      "source": "Källa:",
+      "imfGrowth": "IMF:s tillväxtprognos",
+      "creditGdp": "Kredit i förhållande till BNP",
+      "strategicTrade": "Strategisk handelsexponering",
+      "crudeImports": "Råoljeimport",
+      "gasDemand": "Gasefterfrågan",
+      "energyMix": "Elmix",
+      "coal": "kol",
+      "aviationAvailability": "Luftfartstillgänglighet",
+      "hazardAvailability": "Farotillgänglighet",
+      "noMajorDisruptions": "Inga större störningar rapporterade",
+      "activeDisruptions_one": "{{count}} aktiv störning",
+      "activeDisruptions_other": "{{count}} aktiva störningar",
+      "activeSignals_one": "{{count}} aktiv signal",
+      "activeSignals_other": "{{count}} aktiva signaler",
+      "aviationSource": "Luftfartsövervakning",
+      "hazardSource": "Landsunderrättelsesignaler",
+      "marketSource": "Nationellt marknadsindex",
+      "ccfiSource": "Shanghai Shipping Exchange",
+      "comtradeSource": "UN Comtrade, rapportör 156",
+      "sourceUnavailable": "Källa saknas",
+      "macroUnavailable": "Makro- och politikdata är för närvarande inte tillgängliga.",
+      "marketUnavailable": "Marknads- och kreditdata är för närvarande inte tillgängliga.",
+      "tradeUnavailable": "Handels- och leveranskedjedata är för närvarande inte tillgängliga.",
+      "energyUnavailable": "Energidata är för närvarande inte tillgängliga.",
+      "availabilityUnavailable": "Data om faror och luftfart är för närvarande inte tillgängliga.",
+      "status": {
+        "loading": "Läser in",
+        "available": "Tillgänglig",
+        "partial": "Delvis",
+        "stale": "Inaktuell",
+        "unavailable": "Otillgänglig"
+      }
+    }
   },
   "preferences": {
     "display": "Visning",
@@ -3037,6 +3087,7 @@
     "serverError": "Serverfel: {{status}}",
     "unknownError": "Okänt fel",
     "generatedWidget": "Genererad widget: {{title}}",
+    "saveFailed": "Det gick inte att spara widgeten. Försök igen.",
     "checkingConnection": "Kontrollerar widgetåtkomst…",
     "preflightConnected": "Ansluten till widgetagenten",
     "preflightInvalidKey": "Widgetnyckel avvisad. Uppdatera wm-widget-key och ladda om.",
@@ -3136,5 +3187,18 @@
     "or": "eller ange en anpassad server",
     "generatingVisualization": "Skapar visualisering...",
     "visualizationFailed": "Visualiseringen misslyckades"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

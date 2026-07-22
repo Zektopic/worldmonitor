@@ -4,7 +4,7 @@ import { build } from 'esbuild';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 import type { MapLayers, PanelConfig } from '../src/types/index.ts';
 import {
@@ -339,6 +339,7 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
         url.searchParams.set('timeRange', state.timeRange);
         const layers = Object.keys(state.layers).filter((key) => state.layers[key]);
         url.searchParams.set('layers', layers.length ? layers.join(',') : 'none');
+        if (state.chokepoint) url.searchParams.set('chokepoint', state.chokepoint);
         return url.toString();
       }
       export function debounce(fn, delay) {
@@ -356,6 +357,14 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
       export function saveToStorage(key, value) {
         try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
       }
+      export function loadFromStorage(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw == null ? fallback : JSON.parse(raw);
+        } catch {
+          return fallback;
+        }
+      }
       export function rssProxyUrl(url) { return url; }
       export function getCSSColor(_name, fallback) { return fallback || '#000000'; }
       export class ExportPanel {}
@@ -366,11 +375,51 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
         globalThis.__missionToastMessages.push(message);
       }
     `],
+    ['@/utils/after-paint', `
+      export function scheduleAfterFirstPaint(task) {
+        globalThis.__missionAfterPaintTasks = globalThis.__missionAfterPaintTasks || [];
+        globalThis.__missionAfterPaintTasks.push(task);
+      }
+    `],
     ['@/utils/dom-utils', `
+      export function h(tagName, props, ...children) {
+        const el = document.createElement(tagName);
+        if (props && typeof props === 'object') {
+          for (const [key, value] of Object.entries(props)) {
+            if (key === 'className') el.className = String(value);
+            else if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2).toLowerCase(), value);
+            else if (value !== false && value != null) el.setAttribute(key, String(value));
+          }
+        }
+        for (const child of children.flat()) {
+          if (child == null) continue;
+          if (typeof child === 'string') {
+            const text = document.createElement('span');
+            text.textContent = child;
+            el.appendChild(text);
+          } else {
+            el.appendChild(child);
+          }
+        }
+        return el;
+      }
+      export function replaceChildren(el, ...children) {
+        el.innerHTML = '';
+        for (const child of children.flat()) {
+          if (child == null) continue;
+          if (typeof child === 'string') {
+            const text = document.createElement('span');
+            text.textContent = child;
+            el.appendChild(text);
+          } else {
+            el.appendChild(child);
+          }
+        }
+      }
       export function trustedHtml(html) { return String(html); }
       export function setTrustedHtml(el, html) { el.innerHTML = String(html); }
     `],
-    ['@/utils/sanitize', 'export function escapeHtml(value) { return String(value); }'],
+    ['@/utils/sanitize', 'export function escapeHtml(value) { return String(value); } export function safeHtmlToString(value) { return String(value); }'],
     ['@/services/analytics', `
       const push = (name, args) => {
         globalThis.__missionAnalytics = globalThis.__missionAnalytics || [];
@@ -385,6 +434,7 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
       export function trackPanelToggled(...args) { push('trackPanelToggled', args); }
       export function trackDownloadClicked(...args) { push('trackDownloadClicked', args); }
       export function trackGateHit(...args) { push('trackGateHit', args); }
+      export function trackPanelResized(...args) { push('trackPanelResized', args); }
     `],
     ['@/services', `
       export async function saveSnapshot() {}
@@ -424,6 +474,10 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
       export class LlmStatusIndicator {}
       export class PredictionPanel { renderPredictions(){} }
     `],
+    ['@/components/PlaybackControl', 'export class PlaybackControl { onSnapshot(){} getElement(){ return document.createElement("div"); } }'],
+    ['@/components/StatusPanel', 'export class StatusPanel {}'],
+    ['@/components/PizzIntIndicator', 'export class PizzIntIndicator { getElement(){ return document.createElement("div"); } update(){} }'],
+    ['@/components/LlmStatusIndicator', 'export class LlmStatusIndicator { getElement(){ return document.createElement("div"); } update(){} }'],
     ['@/components/CustomWidgetPanel', 'export class CustomWidgetPanel { constructor(spec){ this.spec = spec; } getElement(){ return document.createElement("div"); } }'],
     ['@/components/WidgetChatModal', 'export function openWidgetChatModal(){}'],
     ['@/components/McpDataPanel', 'export class McpDataPanel { constructor(spec){ this.spec = spec; } getElement(){ return document.createElement("div"); } }'],
@@ -449,7 +503,7 @@ async function loadEventHandlerManager(): Promise<EventHandlerManagerCtor> {
   };
 
   const result = await build({
-    entryPoints: [new URL('../src/app/event-handlers.ts', import.meta.url).pathname],
+    entryPoints: [fileURLToPath(new URL('../src/app/event-handlers.ts', import.meta.url))],
     bundle: true,
     format: 'esm',
     platform: 'browser',
@@ -513,6 +567,7 @@ function resetMissionGlobals(): void {
   delete (globalThis as { __missionAisConfigured?: unknown }).__missionAisConfigured;
   delete (globalThis as { __missionFreshness?: unknown }).__missionFreshness;
   delete (globalThis as { __missionToastMessages?: unknown }).__missionToastMessages;
+  delete (globalThis as { __missionAfterPaintTasks?: unknown }).__missionAfterPaintTasks;
 }
 
 beforeEach(() => {
@@ -1031,6 +1086,7 @@ function createMissionHarness(options: { mobile?: boolean; storage?: MemoryStora
     isIdle: false,
     initialLoadComplete: true,
     resolvedLocation: 'global',
+    activeChokepoint: null,
     initialUrlState: null,
     PANEL_ORDER_KEY: 'panel-order',
     PANEL_SPANS_KEY: 'panel-spans',
@@ -1055,6 +1111,24 @@ function createMissionHarness(options: { mobile?: boolean; storage?: MemoryStora
 }
 
 describe('mission preset shell integration', () => {
+  it('rechecks mission prompt eligibility before the idle auto-open fires', async () => {
+    const { manager } = createMissionHarness();
+    const opened: Array<{ anchor: unknown; mobile: unknown }> = [];
+
+    manager.setupMissionPresets();
+    manager.openMissionPresetPopover = (anchor: unknown, mobile: unknown) => {
+      opened.push({ anchor, mobile });
+    };
+
+    const tasks = (globalThis as { __missionAfterPaintTasks?: Array<() => void> }).__missionAfterPaintTasks ?? [];
+    assert.equal(tasks.length, 1, 'desktop startup should schedule one mission prompt idle task');
+
+    saveMissionPreset('supply-chain-risk');
+    tasks[0]!();
+
+    assert.deepEqual(opened, [], 'stored mission state should cancel the delayed auto-open');
+  });
+
   it('applies a preset through the real manager path and resets state, storage, layers, map view, and URL to defaults', async () => {
     const { ctx, callbacks, manager } = createMissionHarness();
     const baselineWorkspace = defaultWorkspacePanelKeys('full');

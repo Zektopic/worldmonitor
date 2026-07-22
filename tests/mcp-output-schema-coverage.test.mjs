@@ -54,7 +54,7 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
   // actually described.
   it('every tool in TOOL_REGISTRY declares a non-empty outputSchema with at least one properties key (and, for cache tools, at least one data.properties key)', () => {
     const registry = mod.__testing__.TOOL_REGISTRY ?? [];
-    assert.ok(registry.length >= 39, `expected ≥39 tools, got ${registry.length}`);
+    assert.ok(registry.length >= 40, `expected ≥40 tools, got ${registry.length}`);
     const failures = [];
     for (const tool of registry) {
       const schema = tool.outputSchema;
@@ -102,6 +102,52 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
     });
   }
 
+  it('interactive cache-tool schemas declare the authoritative fields consumed by their apps', () => {
+    const dataProperties = (toolName) => {
+      const tool = mod.__testing__.TOOL_REGISTRY.find(t => t.name === toolName);
+      assert.ok(tool, `tool ${toolName} not found in registry`);
+      return tool.outputSchema.properties.data.properties;
+    };
+
+    const newsStory = dataProperties('get_news_intelligence').insights.properties.topStories.items.properties;
+    assert.ok(newsStory.primaryTitle, 'news schema must declare primaryTitle');
+    assert.ok(newsStory.primarySource, 'news schema must declare primarySource');
+    assert.ok(newsStory.threatLevel, 'news schema must declare threatLevel');
+    assert.deepEqual(newsStory.countryCode.type, ['string', 'null']);
+    assert.equal(newsStory.title, undefined, 'news schema must not advertise the drifted title field');
+    assert.equal(newsStory.summary, undefined, 'news schema must not advertise the drifted summary field');
+
+    const disasters = dataProperties('get_natural_disasters');
+    const earthquake = disasters.earthquakes.properties.earthquakes.items.properties;
+    assert.ok(earthquake.occurredAt, 'earthquake schema must declare occurredAt');
+    assert.ok(earthquake.depthKm, 'earthquake schema must declare depthKm');
+    assert.ok(earthquake.location.properties.latitude, 'earthquake latitude must be nested under location');
+    assert.equal(earthquake.time, undefined, 'earthquake schema must not advertise the drifted time field');
+    assert.equal(earthquake.latitude, undefined, 'earthquake schema must not advertise a flat latitude');
+
+    const fire = disasters.fires.properties.fireDetections.items.properties;
+    assert.ok(fire.location.properties.longitude, 'fire longitude must be nested under location');
+    assert.ok(fire.region, 'fire schema must declare region');
+    assert.deepEqual(fire.confidence.enum, [
+      'FIRE_CONFIDENCE_HIGH',
+      'FIRE_CONFIDENCE_NOMINAL',
+      'FIRE_CONFIDENCE_LOW',
+      'FIRE_CONFIDENCE_UNSPECIFIED',
+    ]);
+    assert.equal(fire.latitude, undefined, 'fire schema must not advertise a flat latitude');
+
+    const markets = dataProperties('get_prediction_markets')['markets-bootstrap'].properties;
+    for (const bucket of ['geopolitical', 'tech', 'finance']) {
+      const market = markets[bucket].items.properties;
+      assert.deepEqual(
+        { type: market.yesPrice.type, minimum: market.yesPrice.minimum, maximum: market.yesPrice.maximum },
+        { type: 'number', minimum: 0, maximum: 100 },
+        `${bucket} must declare yesPrice on its authoritative 0-100 scale`,
+      );
+      assert.equal(market.probability, undefined, `${bucket} must not advertise the drifted probability field`);
+    }
+  });
+
   // --------------------------------------------------------------------
   // Test 3 — outputSchema is emitted on the wire for every tool in tools/list
   // --------------------------------------------------------------------
@@ -116,7 +162,7 @@ describe('api/mcp.ts — per-tool outputSchema coverage (v1.7.0)', () => {
     assert.equal(res.status, 200);
     const body = await res.json();
     const tools = body.result?.tools ?? [];
-    assert.ok(tools.length >= 39, `expected ≥39 tools, got ${tools.length}`);
+    assert.ok(tools.length >= 40, `expected ≥40 tools, got ${tools.length}`);
     const missing = tools.filter(t => !t.outputSchema || typeof t.outputSchema !== 'object'
       || !t.outputSchema.properties || Object.keys(t.outputSchema.properties).length === 0)
       .map(t => t.name);

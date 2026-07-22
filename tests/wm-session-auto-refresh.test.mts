@@ -366,12 +366,11 @@ describe('wm-session refresh-on-401 (Layer 2)', () => {
     assert.equal(lastSeenAuth, 'Bearer caller-supplied-jwt', 'caller Authorization must pass through untouched');
   });
 
-  it('returns the second 401 if the retry also fails (no infinite loop)', async () => {
+  it('suppresses later anonymous API calls when a refreshed session is still rejected', async () => {
     // No cached expiry and no stored expiry. Server 401s, the interceptor
     // mints a fresh cookie, replays with credentials, server 401s again.
-    // The second 401 must be returned as-is (no further retry) — the
-    // retryGuard semantics are encoded by `fresh === token`-bail and by the
-    // structural fact that the retry path is never re-entered.
+    // The second 401 must be returned as-is (no further retry); later calls
+    // are suppressed by the dead-session cooldown.
     memoryStorage.clear();
 
     let bootstrapAttempts = 0;
@@ -396,14 +395,286 @@ describe('wm-session refresh-on-401 (Layer 2)', () => {
     console.warn = (...args: unknown[]) => { warnings.push(args.map(String).join(' ')); };
     try {
       const resp = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap');
-      assert.equal(resp.status, 401, 'returns second 401 instead of looping');
+      assert.equal(resp.status, 401, 'the failed recovery returns the server response');
+
+      const suppressed = await wrappedFetch('https://api.worldmonitor.app/api/infrastructure/v1/list-service-statuses');
+      assert.equal(suppressed.status, 503, 'the dead session suppresses later gated calls during the cooldown');
+      assert.equal(suppressed.headers.get('x-wm-session-degraded'), '1');
     } finally {
       console.warn = originalWarn;
     }
-    assert.equal(bootstrapAttempts, 2, 'exactly one retry — no infinite loop');
-    assert.equal(mintCalls, 2, 'initial preflight mint plus one refresh mint after the first 401');
+    assert.equal(bootstrapAttempts, 2, 'exactly one retry — later calls must not reach the API');
+    assert.equal(mintCalls, 2, 'initial preflight mint plus one recovery mint; no later remints');
     assert.deepEqual(warnings, [
-      '[wm-session] API request still returned 401 after refreshing HttpOnly session cookie',
+      '[wm-session] refreshed HttpOnly session cookie was still rejected; suppressing anonymous API calls briefly',
     ]);
+  });
+
+  it('forwards only explicit credential-less public tier reads during the dead-session cooldown', async () => {
+    memoryStorage.clear();
+
+    const forwarded: Array<{ url: string; credentials: RequestCredentials | undefined }> = [];
+    currentFetchHandler = (input, init) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        return Promise.resolve(new Response(JSON.stringify({ exp: FAR_FUTURE }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      const credentials = init?.credentials ?? (input instanceof Request ? input.credentials : undefined);
+      forwarded.push({ url, credentials });
+      if (url.includes('public=1')) return Promise.resolve(new Response('public-tier', { status: 200 }));
+      return Promise.resolve(new Response('still-rejected', { status: 401 }));
+    };
+
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const failed = await wrappedFetch('https://api.worldmonitor.app/api/infrastructure/v1/list-service-statuses');
+      assert.equal(failed.status, 401, 'failed recovery should enter the dead-session cooldown');
+
+      const fast = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap?tier=fast&public=1', {
+        credentials: 'omit',
+      });
+      assert.equal(fast.status, 200, 'string input should reach the public tier while the session is dead');
+
+      const slowRequest = new Request('https://api.worldmonitor.app/api/bootstrap?public=1&tier=slow', {
+        credentials: 'omit',
+      });
+      const slow = await wrappedFetch(slowRequest);
+      assert.equal(slow.status, 200, 'Request input should preserve its effective omit credentials');
+
+      const digest = await wrappedFetch('https://api.worldmonitor.app/api/news/v1/list-feed-digest?variant=full&lang=en&public=1', {
+        credentials: 'omit',
+      });
+      assert.equal(digest.status, 200, 'public digest should bypass dead-session suppression');
+
+      const displacement = await wrappedFetch('https://api.worldmonitor.app/api/displacement/v1/get-displacement-summary?flow_limit=50&public=1', {
+        credentials: 'omit',
+      });
+      assert.equal(displacement.status, 200, 'public displacement should bypass dead-session suppression');
+
+      const missingPublicFlag = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap?tier=fast', {
+        credentials: 'omit',
+      });
+      assert.equal(missingPublicFlag.status, 503, 'ordinary tier reads must remain session-gated');
+
+      const credentialed = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap?tier=fast&public=1', {
+        credentials: 'include',
+      });
+      assert.equal(credentialed.status, 503, 'credentialed tier reads must remain session-gated');
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    assert.deepEqual(
+      forwarded.slice(-4),
+      [
+        { url: 'https://api.worldmonitor.app/api/bootstrap?tier=fast&public=1', credentials: 'omit' },
+        { url: 'https://api.worldmonitor.app/api/bootstrap?public=1&tier=slow', credentials: 'omit' },
+        { url: 'https://api.worldmonitor.app/api/news/v1/list-feed-digest?variant=full&lang=en&public=1', credentials: 'omit' },
+        { url: 'https://api.worldmonitor.app/api/displacement/v1/get-displacement-summary?flow_limit=50&public=1', credentials: 'omit' },
+      ],
+      'only exact credential-less public data requests should reach native fetch during cooldown',
+    );
+  });
+
+  it('captures ONE wm_session_dead Sentry warning per degraded episode, not one per suppressed call', async () => {
+    // reportServerError (premium-fetch.ts) deliberately skips the synthetic
+    // X-Wm-Session-Degraded 503s, so this once-per-episode capture is the
+    // only remote signal that anonymous browsing is degraded (#5245).
+    memoryStorage.clear();
+
+    const captures: Array<{ msg: string; ctx: { level?: string; tags?: Record<string, string> } }> = [];
+    mod.__setWmSessionSentryEnqueueForTests(((fn: (s: unknown) => void) => {
+      fn({ captureMessage: (msg: string, ctx: { level?: string; tags?: Record<string, string> }) => { captures.push({ msg, ctx }); } });
+    }) as Parameters<typeof mod.__setWmSessionSentryEnqueueForTests>[0]);
+
+    currentFetchHandler = (input) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        return Promise.resolve(new Response(JSON.stringify({ exp: FAR_FUTURE }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return Promise.resolve(new Response('still-rejected', { status: 401 }));
+    };
+
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      // First call trips the failed recovery → markWmSessionDead().
+      await wrappedFetch('https://api.worldmonitor.app/api/bootstrap');
+      // Later calls are suppressed by the cooldown — no additional captures.
+      const s1 = await wrappedFetch('https://api.worldmonitor.app/api/economic/v1/get-bls-series');
+      const s2 = await wrappedFetch('https://api.worldmonitor.app/api/supply-chain/v1/get-shipping-stress');
+      assert.equal(s1.status, 503);
+      assert.equal(s2.status, 503);
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    assert.equal(captures.length, 1, 'exactly one Sentry capture per dead-session episode');
+    assert.equal(captures[0].msg, 'wm-session dead: anonymous API calls suppressed');
+    assert.equal(captures[0].ctx.level, 'warning');
+    assert.equal(captures[0].ctx.tags?.kind, 'wm_session_dead');
+    assert.equal(captures[0].ctx.tags?.reason, 'retry_401');
+  });
+
+  it('tags wm_session_dead as mint_failed when recovery cannot mint a session', async () => {
+    memoryStorage.clear();
+
+    const captures: Array<{ msg: string; ctx: { level?: string; tags?: Record<string, string> } }> = [];
+    mod.__setWmSessionSentryEnqueueForTests(((fn: (s: unknown) => void) => {
+      fn({ captureMessage: (msg: string, ctx: { level?: string; tags?: Record<string, string> }) => { captures.push({ msg, ctx }); } });
+    }) as Parameters<typeof mod.__setWmSessionSentryEnqueueForTests>[0]);
+
+    let mintCalls = 0;
+    currentFetchHandler = (input) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        mintCalls += 1;
+        return Promise.resolve(new Response('mint unavailable', { status: 503 }));
+      }
+      return Promise.resolve(new Response('unauthorized', { status: 401 }));
+    };
+
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const resp = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap');
+      assert.equal(resp.status, 401, 'failed recovery returns the original server response');
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    assert.equal(mintCalls, 2, 'initial preflight and recovery mint both fail');
+    assert.equal(captures.length, 1, 'the failed mint starts one degraded episode');
+    assert.equal(captures[0].ctx.tags?.kind, 'wm_session_dead');
+    assert.equal(captures[0].ctx.tags?.reason, 'mint_failed');
+  });
+
+  it('a throwing Sentry enqueue never skips the degraded-event dispatch nor rejects the recovery return', async () => {
+    // greptile P2 on PR #5247: the capture sits upstream of the
+    // WM_SESSION_DEGRADED_EVENT dispatch AND inside the interceptor's 401
+    // recovery path — an unguarded throw would both hide the UI toast and
+    // turn the wrapped fetch into a rejection instead of returning the 401.
+    memoryStorage.clear();
+    mod.__setWmSessionSentryEnqueueForTests((() => {
+      throw new Error('sdk exploded');
+    }) as Parameters<typeof mod.__setWmSessionSentryEnqueueForTests>[0]);
+
+    // window === globalThis in this harness, and Node's main-thread
+    // globalThis is not an EventTarget — stub dispatchEvent so the module's
+    // `typeof window.dispatchEvent === 'function'` guard takes the dispatch
+    // branch and we can observe it.
+    let degradedEvents = 0;
+    const g = globalThis as unknown as { dispatchEvent?: (ev: Event) => boolean };
+    g.dispatchEvent = (ev: Event) => {
+      if (ev.type === mod.WM_SESSION_DEGRADED_EVENT) degradedEvents += 1;
+      return true;
+    };
+
+    currentFetchHandler = (input) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        return Promise.resolve(new Response(JSON.stringify({ exp: FAR_FUTURE }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return Promise.resolve(new Response('still-rejected', { status: 401 }));
+    };
+
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const resp = await wrappedFetch('https://api.worldmonitor.app/api/bootstrap');
+      assert.equal(resp.status, 401, 'recovery must return the server 401, not reject');
+    } finally {
+      console.warn = originalWarn;
+      delete g.dispatchEvent;
+    }
+
+    assert.equal(degradedEvents, 1, 'degraded event must still dispatch when telemetry throws');
+  });
+
+  it('single-flights concurrent 401 recovery so only one retry verifies the mint', async () => {
+    memoryStorage.clear();
+    let gatedAttempts = 0;
+    let mintCalls = 0;
+    currentFetchHandler = (input) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        mintCalls += 1;
+        return Promise.resolve(new Response(JSON.stringify({ exp: FAR_FUTURE }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      gatedAttempts += 1;
+      return Promise.resolve(new Response('still-rejected', { status: 401 }));
+    };
+
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const responses = await Promise.all([
+        wrappedFetch('https://api.worldmonitor.app/api/bootstrap'),
+        wrappedFetch('https://api.worldmonitor.app/api/infrastructure/v1/list-service-statuses'),
+        wrappedFetch('https://api.worldmonitor.app/api/infrastructure/v1/get-cable-health'),
+      ]);
+      assert.deepEqual(responses.map((response) => response.status), [401, 401, 401]);
+    } finally {
+      console.warn = originalWarn;
+    }
+    assert.equal(mintCalls, 2, 'all callers share the initial mint and one recovery mint');
+    assert.equal(gatedAttempts, 4, 'three initial 401s plus one verifier retry, never one retry per caller');
+  });
+
+  it('replays a delayed stale 401 after another caller has refreshed the session', async () => {
+    memoryStorage.clear();
+    let mintCalls = 0;
+    let bootstrapAttempts = 0;
+    let cableAttempts = 0;
+    let releaseDelayed401: (() => void) | null = null;
+    currentFetchHandler = (input) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+      if (url.includes('/api/wm-session')) {
+        mintCalls += 1;
+        return Promise.resolve(new Response(JSON.stringify({ exp: FAR_FUTURE }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      if (url.includes('/api/bootstrap')) {
+        bootstrapAttempts += 1;
+        return Promise.resolve(new Response(bootstrapAttempts === 1 ? 'stale' : 'recovered', {
+          status: bootstrapAttempts === 1 ? 401 : 200,
+        }));
+      }
+      cableAttempts += 1;
+      if (cableAttempts === 1) {
+        return new Promise((resolve) => {
+          releaseDelayed401 = () => resolve(new Response('stale', { status: 401 }));
+        });
+      }
+      return Promise.resolve(new Response('recovered', { status: 200 }));
+    };
+
+    const first = wrappedFetch('https://api.worldmonitor.app/api/bootstrap');
+    const delayed = wrappedFetch('https://api.worldmonitor.app/api/infrastructure/v1/get-cable-health');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(releaseDelayed401, 'the second request should already be awaiting its stale response');
+    releaseDelayed401?.();
+
+    const [firstResponse, delayedResponse] = await Promise.all([first, delayed]);
+    assert.equal(firstResponse.status, 200);
+    assert.equal(delayedResponse.status, 200);
+    assert.equal(mintCalls, 2, 'one initial mint plus one recovery mint');
+    assert.equal(bootstrapAttempts, 2, 'the first caller verifies the reminted cookie once');
+    assert.equal(cableAttempts, 2, 'the delayed stale response replays without invalidating the fresh session');
   });
 });

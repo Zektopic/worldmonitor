@@ -130,7 +130,50 @@
       "area": "Fläche"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "China-Länderüberblick",
+      "description": "Aktuelle Makro-, Markt-, Handels-, Energie- und Betriebsverfügbarkeitsdaten aus bestehenden öffentlichen Datenverträgen.",
+      "macroPolicy": "Makro & Politik",
+      "marketCredit": "Markt & Kredit",
+      "tradeSupply": "Handel & Lieferkette",
+      "energy": "Energie",
+      "availability": "Gefahren & Luftfahrt",
+      "observed": "Stand:",
+      "source": "Quelle:",
+      "imfGrowth": "IWF-Wachstumsprognose",
+      "creditGdp": "Kredit im Verhältnis zum BIP",
+      "strategicTrade": "Strategische Handelsexposition",
+      "crudeImports": "Rohölimporte",
+      "gasDemand": "Gasnachfrage",
+      "energyMix": "Strommix",
+      "coal": "Kohle",
+      "aviationAvailability": "Luftfahrt-Verfügbarkeit",
+      "hazardAvailability": "Gefahren-Verfügbarkeit",
+      "noMajorDisruptions": "Keine größeren Störungen gemeldet",
+      "activeDisruptions_one": "{{count}} aktive Störung",
+      "activeDisruptions_other": "{{count}} aktive Störungen",
+      "activeSignals_one": "{{count}} aktives Signal",
+      "activeSignals_other": "{{count}} aktive Signale",
+      "aviationSource": "Luftfahrtüberwachung",
+      "hazardSource": "Länder-Intelligence-Signale",
+      "marketSource": "Nationaler Marktindex",
+      "ccfiSource": "Shanghai Shipping Exchange",
+      "comtradeSource": "UN Comtrade, Berichtsland 156",
+      "sourceUnavailable": "Quelle nicht verfügbar",
+      "macroUnavailable": "Makro- und Politikdaten sind derzeit nicht verfügbar.",
+      "marketUnavailable": "Markt- und Kreditdaten sind derzeit nicht verfügbar.",
+      "tradeUnavailable": "Handels- und Lieferkettendaten sind derzeit nicht verfügbar.",
+      "energyUnavailable": "Energiedaten sind derzeit nicht verfügbar.",
+      "availabilityUnavailable": "Gefahren- und Luftfahrtdaten sind derzeit nicht verfügbar.",
+      "status": {
+        "loading": "Wird geladen",
+        "available": "Verfügbar",
+        "partial": "Teilweise",
+        "stale": "Veraltet",
+        "unavailable": "Nicht verfügbar"
+      }
+    }
   },
   "header": {
     "world": "WELT",
@@ -660,15 +703,15 @@
       "logCleared": "Protokoll gelöscht.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Lizenzschlüssel",
+          "title": "Lizenz- / API-Schlüssel",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Fügen Sie Ihre Lizenz ein, um alle Datenquellen und KI-Funktionen sofort freizuschalten."
+          "description": "Abonnenten von API Starter und API Business erstellen diesen Schlüssel im Web-Dashboard unter Settings → API Keys. Wenn der vollständige Schlüssel verloren ist, widerrufen Sie ihn und erstellen Sie einen Ersatz."
         },
         "dividerOr": "ODER",
         "register": {
-          "title": "Reservieren Sie Ihren Platz",
-          "description": "Wir bereiten den Start von World Monitor-Lizenzen vor. Melden Sie sich jetzt an und seien Sie der Erste — frühe Mitglieder erhalten bevorzugten Zugang und Gründermitglied-Preise.",
-          "submitBtn": "Auf die Warteliste setzen"
+          "title": "Benötigen Sie einen API-Schlüssel?",
+          "description": "Eine Schritt-für-Schritt-Anleitung finden Sie unter worldmonitor.app/docs/api-keys. Manuelle API-Schlüssel erfordern einen API Starter- oder API Business-Tarif.",
+          "submitBtn": "API-Tarife ansehen"
         }
       },
       "shellTitle": "World Monitor – Einstellungen",
@@ -699,7 +742,9 @@
         "space": "WELTRAUM"
       },
       "paused": "Webcams pausiert",
-      "pausedIdle": "Webcams pausiert — Maus bewegen zum Fortsetzen"
+      "pausedIdle": "Webcams pausiert — Maus bewegen zum Fortsetzen",
+      "play": "Abspielen",
+      "previewStatus": "Live-Vorschau"
     },
     "regulation": {
       "timeline": "Zeitleiste",
@@ -1557,8 +1602,8 @@
       "badgeAnimDesc": "Update-Badges in Panel-Kopfzeilen animieren",
       "headlineMemoryLabel": "Schlagzeilen-Speicher",
       "headlineMemoryDesc": "Gesehene Schlagzeilen merken, um neue hervorzuheben",
-      "streamAlwaysOnLabel": "Live-Streams weiterlaufen lassen",
-      "streamAlwaysOnDesc": "Verhindert, dass Live Cams und Live News bei Inaktivität automatisch pausieren. Empfohlen für Zweitmonitor-/Wallboard-Nutzung. Zum Sparen von CPU/Bandbreite deaktivieren (Eco).",
+      "streamAlwaysOnLabel": "Live-Streams im Dashboard automatisch abspielen",
+      "streamAlwaysOnDesc": "Startet Live News und Live Webcams automatisch, sobald sie sichtbar sind. Deaktiviert lassen, damit Videos erst nach Klick auf Abspielen geladen werden.",
       "globeRenderScaleOptions": {
         "1": "Eco (1x)",
         "2": "4K (2x)",
@@ -1600,7 +1645,10 @@
       "tonePositive": "Positiv",
       "overall": "Gesamt: {{tone}}",
       "signalTypesEvents": "{{types}} Signaltypen • {{events}} Ereignisse",
-      "newsSignals": "{{news}} Nachrichten • {{signals}} Signale"
+      "newsSignals": "{{news}} Nachrichten • {{signals}} Signale",
+      "provenanceTitle": "Abdeckungsherkunft: Anzahl der erfassten Stories und unterschiedlichen Quellen, aus denen dieser Brief ausgewählt wurde",
+      "compiledFrom": "Zusammengestellt aus {{stories}} Geschichten über {{sources}} Quellen",
+      "briefFreshness": "Generiert vor {{minutes}}m · neueste Quelle {{hours}}h alt"
     },
     "etfFlows": {
       "unavailable": "ETF-Daten vorübergehend nicht verfügbar",
@@ -1720,7 +1768,9 @@
       "verifying": "Wird überprüft…",
       "noResults": "Keine Kanäle gefunden für \"{{term}}\"",
       "hlsUrl": "HLS-Stream-URL (optional)",
-      "invalidHlsUrl": "Geben Sie eine gültige HLS-Stream-URL ein (.m3u8)"
+      "invalidHlsUrl": "Geben Sie eine gültige HLS-Stream-URL ein (.m3u8)",
+      "playLiveFeed": "Live-Feed abspielen",
+      "readyStatus": "Bereit, wenn Sie es sind"
     },
     "securityAdvisories": {
       "loading": "Reisehinweise werden geladen...",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "F&E-Signal",
-      "infoTooltip": "Wöchentliche Anmeldungen von Verteidigungs- und Doppelverwendungspatenten von Raytheon, Lockheed, Huawei, DARPA und anderen strategischen Organisationen. Kategorien: H04B (Kommunikation), H01L (Halbleiter), F42B (Munition), G06N (KI), C12N (Biotechnologie). Quelle: USPTO PatentsView.",
+      "infoTooltip": "Wöchentliche Anmeldungen von Verteidigungs- und Doppelverwendungspatenten von Raytheon, Lockheed, Huawei, DARPA und anderen strategischen Organisationen. Kategorien: H04B (Kommunikation), H01L (Halbleiter), F42B (Munition), G06N (KI), C12N (Biotechnologie). Quelle: USPTO Open Data Portal.",
       "loading": "F&E-Anmeldungen werden geladen…",
       "error": "Fehler beim Laden der Patentdaten.",
       "empty": "Keine Anmeldungen in dieser Kategorie.",
@@ -3037,6 +3087,7 @@
     "serverError": "Serverfehler: {{status}}",
     "unknownError": "Unbekannter Fehler",
     "generatedWidget": "Generiertes Widget: {{title}}",
+    "saveFailed": "Widget konnte nicht gespeichert werden. Bitte versuche es erneut.",
     "checkingConnection": "Prüfe Widget-Zugriff…",
     "preflightConnected": "Mit Widget-Agent verbunden",
     "preflightInvalidKey": "Widget-Schlüssel abgelehnt. Aktualisieren Sie wm-widget-key und laden Sie neu.",
@@ -3136,5 +3187,18 @@
     "or": "oder geben Sie einen benutzerdefinierten Server ein",
     "generatingVisualization": "Visualisierung wird erstellt...",
     "visualizationFailed": "Visualisierung fehlgeschlagen"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

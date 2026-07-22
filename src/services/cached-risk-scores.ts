@@ -2,14 +2,10 @@ import type { CountryScore, ComponentScores } from './country-instability';
 import { getRpcBaseUrl } from '@/services/rpc-client';
 import { setHasCachedScores } from './country-instability';
 import { TIER1_COUNTRIES } from '@/config/countries';
-import {
-  IntelligenceServiceClient,
-  type GetRiskScoresResponse,
-  type CiiScore,
-  type StrategicRisk,
-} from '@/generated/client/worldmonitor/intelligence/v1/service_client';
+import type { GetRiskScoresResponse, CiiScore, StrategicRisk } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
 import { createCircuitBreaker } from '@/utils';
 import { getHydratedData } from '@/services/bootstrap';
+import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
 
 // ---- Sebuf client ----
 
@@ -76,6 +72,11 @@ function getScoreLevel(score: number): 'low' | 'normal' | 'elevated' | 'high' | 
   if (score >= 51) return 'elevated';
   if (score >= 31) return 'normal';
   return 'low';
+}
+
+export function isElevatedCiiScore(score: number): boolean {
+  const level = getScoreLevel(score);
+  return level === 'elevated' || level === 'high' || level === 'critical';
 }
 
 function toCachedCII(proto: CiiScore): CachedCIIScore {
@@ -148,6 +149,7 @@ export function toRiskScores(resp: GetRiskScoresResponse): CachedRiskScores {
 // ---- Shape validator (localStorage is attacker-controlled) ----
 
 const VALID_LEVELS = new Set(['low', 'normal', 'elevated', 'high', 'critical']);
+const VALID_STRATEGIC_RISK_LEVELS = new Set(['low', 'medium', 'high']);
 const VALID_TRENDS = new Set(['rising', 'stable', 'falling']);
 const ISO2_RE = /^[A-Z]{2}$/;
 const COMPONENT_KEYS = ['unrest', 'conflict', 'security', 'information'] as const;
@@ -192,6 +194,25 @@ function isValidCiiEntry(e: unknown): e is CachedCIIScore {
     && isValidCachedCiiTimestamp(o.lastUpdated);
 }
 
+function isValidStrategicRisk(value: unknown): value is CachedStrategicRisk {
+  if (!value || typeof value !== 'object') return false;
+  const risk = value as Record<string, unknown>;
+  if (!isFiniteInRange(risk.score, 0, 100)
+    || !VALID_STRATEGIC_RISK_LEVELS.has(risk.level as string)
+    || !VALID_TRENDS.has(risk.trend as string)
+    || !isValidCachedCiiTimestamp(risk.lastUpdated)
+    || !Array.isArray(risk.contributors)) return false;
+
+  return risk.contributors.every((value) => {
+    if (!value || typeof value !== 'object') return false;
+    const contributor = value as Record<string, unknown>;
+    return typeof contributor.country === 'string'
+      && isKnownTier1Code(contributor.code)
+      && isFiniteInRange(contributor.score, 0, 100)
+      && VALID_LEVELS.has(contributor.level as string);
+  });
+}
+
 function canonicalizeCachedCiiEntry(entry: CachedCIIScore): CachedCIIScore {
   return {
     ...entry,
@@ -218,7 +239,7 @@ function loadFromStorage(): CachedRiskScores | null {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
     const { data, savedAt } = JSON.parse(raw);
-    if (!Number.isFinite(savedAt) || !Array.isArray(data?.cii)) {
+    if (!Number.isFinite(savedAt) || !Array.isArray(data?.cii) || !isValidStrategicRisk(data?.strategicRisk)) {
       localStorage.removeItem(LS_KEY);
       return null;
     }

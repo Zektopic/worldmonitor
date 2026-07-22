@@ -1,4 +1,5 @@
 import { CHOKEPOINT_REGISTRY } from '../../../_shared/chokepoint-registry';
+import { isBlockedResolvedAddress } from '../../../_shared/ip-address-classification';
 
 export const WEBHOOK_TTL = 86400 * 30; // 30 days
 export const VALID_CHOKEPOINT_IDS = new Set(CHOKEPOINT_REGISTRY.map(c => c.id));
@@ -32,39 +33,22 @@ export const BLOCKED_METADATA_HOSTNAMES = new Set([
   'link-local.s3.amazonaws.com',
 ]);
 
-export function isBlockedResolvedAddress(address: string): boolean {
-  const normalized = address.trim().toLowerCase().replace(/^\[|\]$/g, '');
-  const v4Mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  const addr = v4Mapped?.[1] ?? normalized;
+const DNS_RESOLUTION_TIMEOUT_MS = 3_000;
+const DNS_JSON_ENDPOINT = 'https://cloudflare-dns.com/dns-query';
+const TEST_RESOLVER_KEY = Symbol.for('worldmonitor.shippingV2.resolveWebhookHostnameForTest');
 
-  if (addr === '::' || addr === '::1') return true;
-  if (/^f[cd][0-9a-f]{2}:/i.test(addr)) return true; // fc00::/7 unique local
-  if (/^fe[89ab][0-9a-f]:/i.test(addr)) return true; // fe80::/10 link local
-  if (/^ff[0-9a-f]{2}:/i.test(addr)) return true; // ff00::/8 multicast
-  if (/^2001:0?db8:/i.test(addr)) return true; // 2001:db8::/32 documentation
+type ResolveHostname = (hostname: string) => Promise<string[]>;
 
-  const parts = addr.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false;
-  }
-
-  const [a, b, c] = parts as [number, number, number, number];
-  if (a === 0) return true; // 0.0.0.0/8
-  if (a === 10) return true; // 10.0.0.0/8
-  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
-  if (a === 127) return true; // 127.0.0.0/8 loopback
-  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link local
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
-  if (a === 192 && b === 0 && c === 0) return true; // 192.0.0.0/24 IETF
-  if (a === 192 && b === 0 && c === 2) return true; // 192.0.2.0/24 TEST-NET-1
-  if (a === 192 && b === 88 && c === 99) return true; // 192.88.99.0/24 deprecated 6to4
-  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
-  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 benchmark
-  if (a === 198 && b === 51 && c === 100) return true; // 198.51.100.0/24 TEST-NET-2
-  if (a === 203 && b === 0 && c === 113) return true; // 203.0.113.0/24 TEST-NET-3
-  if (a >= 224) return true; // multicast + reserved
-  return false;
+function isIpLiteral(hostname: string): boolean {
+  return hostname.includes(':') || /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
 }
+
+function getResolveHostnameForTest(): ResolveHostname | undefined {
+  const candidate = Reflect.get(globalThis, TEST_RESOLVER_KEY);
+  return typeof candidate === 'function' ? candidate as ResolveHostname : undefined;
+}
+
+export { isBlockedResolvedAddress };
 
 export function isBlockedCallbackUrl(rawUrl: string): string | null {
   let parsed: URL;
@@ -95,6 +79,59 @@ export function isBlockedCallbackUrl(rawUrl: string): string | null {
   }
 
   return null;
+}
+
+async function defaultResolveHostname(hostname: string): Promise<string[]> {
+  const resolveHostnameForTest = getResolveHostnameForTest();
+  if (resolveHostnameForTest) return resolveHostnameForTest(hostname);
+
+  const resolveRecordType = async (recordType: 'A' | 'AAAA'): Promise<string[]> => {
+    const url = new URL(DNS_JSON_ENDPOINT);
+    url.searchParams.set('name', hostname);
+    url.searchParams.set('type', recordType);
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/dns-json',
+        'User-Agent': 'WorldMonitor-ShippingV2-Webhooks/1.0',
+      },
+      signal: AbortSignal.timeout(DNS_RESOLUTION_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`DNS ${recordType} lookup failed: HTTP ${response.status}`);
+    const data = await response.json() as { Status?: number; Answer?: Array<{ type?: number; data?: string }> };
+    if (data.Status !== 0) throw new Error(`DNS ${recordType} lookup failed: status ${data.Status}`);
+    const expectedType = recordType === 'A' ? 1 : 28;
+    return (data.Answer ?? [])
+      .filter(answer => answer.type === expectedType && typeof answer.data === 'string')
+      .map(answer => answer.data!);
+  };
+  const records = await Promise.all([resolveRecordType('A'), resolveRecordType('AAAA')]);
+  return records.flat();
+}
+
+/**
+ * Validate the current DNS answer before storing a webhook. Delivery makes the
+ * same check immediately before send and pins the resulting socket, which
+ * keeps this fail-fast check from becoming the only SSRF control.
+ */
+export async function assertCallbackUrlRegistrationSafe(
+  callbackUrl: string,
+  resolveHostname: ResolveHostname = defaultResolveHostname,
+): Promise<void> {
+  const staticError = isBlockedCallbackUrl(callbackUrl);
+  if (staticError) throw new Error(staticError);
+
+  const hostname = new URL(callbackUrl).hostname.toLowerCase();
+  if (isIpLiteral(hostname)) return;
+  let resolvedAddresses: string[];
+  try {
+    resolvedAddresses = await resolveHostname(hostname);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`callbackUrl DNS resolution failed: ${message}`);
+  }
+  if (!resolvedAddresses.length) throw new Error('callbackUrl DNS resolution returned no addresses');
+  const blocked = resolvedAddresses.find(isBlockedResolvedAddress);
+  if (blocked) throw new Error('callbackUrl resolves to a private/reserved address');
 }
 
 export async function generateSecret(): Promise<string> {

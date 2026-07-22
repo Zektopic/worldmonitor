@@ -40,6 +40,28 @@ const { TOOL_REGISTRY } = mcpTesting;
 const EXCLUDED_FROM_MCP = new Map([
 
   // ===========================================================================
+  // #4920 completeness-measurement ops keys (pipeline health, not content)
+  // ===========================================================================
+  ['news:feed-health:v1',
+    'ops surface: per-feed validation status + silent-zero streaks published by the daily feed-validation workflow; consumed by api/health.js + operators, not a queryable news slice (#4920).'],
+  ['news:recall-benchmark:v1',
+    'ops surface: daily GDELT recall percentage + missed headlines for coverage monitoring; consumed by api/health.js + operators, not a queryable news slice (#4920).'],
+  ['health:china-coverage:v1',
+    'operational: bounded China coverage verdict and reason codes consumed by api/health.js and the read-only operator audit; source content remains available through its domain tools, so this summary is not a queryable MCP slice (#5271).'],
+  ['economic:global-tenders:v1:source:sam',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+  ['economic:global-tenders:v1:source:ted',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+  ['economic:global-tenders:v1:source:contracts-finder',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+  ['economic:global-tenders:v1:source:canada-buys',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+  ['economic:global-tenders:v1:source:gets',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+  ['economic:global-tenders:v1:source:world-bank',
+    'ops surface: per-source procurement availability, freshness, and record count; consumed by api/health.js while tender content is exposed through the bounded MCP procurement tool, which proxies the paginated economic RPC.'],
+
+  // ===========================================================================
   // Intermediate / pipeline keys (data surfaces through a sibling tool)
   // ===========================================================================
   ['supply_chain:corridorrisk:v1',
@@ -48,6 +70,8 @@ const EXCLUDED_FROM_MCP = new Map([
     'intermediate: seed-to-seed pipeline key, only populated after seed-military-flights runs (matches api/health.js:463 ON_DEMAND_KEYS rationale).'],
   ['intelligence:military-cii:v1',
     'intermediate: per-country military-presence aggregate (own/foreign flights+vessels, AIS disruption buckets) read by server/worldmonitor/intelligence/v1/get-risk-scores.ts to feed the CII Security component; surfaces transitively via the country-risk score returned by get_country_risk. Not a queryable MCP slice on its own.'],
+  ['weather:hko-warnings:v1',
+    'intermediate: dedicated HKO warning snapshot is independently health-monitored, while its warning events are merged into natural:events:v1 and exposed by get_natural_disasters. The raw side snapshot has no separate MCP schema or filter surface.'],
 
   // ===========================================================================
   // Cascade-mirror fallbacks (live/stale/backup of a sibling already exposed)
@@ -74,6 +98,14 @@ const EXCLUDED_FROM_MCP = new Map([
     'cascade-mirror: RPC variant of aviation:delays-bootstrap:v2 (covered by get_aviation_status). Same seed-meta key (seed-meta:aviation:faa).'],
   ['cyber:threats:v2',
     'cascade-mirror: RPC variant of cyber:threats-bootstrap:v2 (covered by get_cyber_threats). Same seed-meta key (seed-meta:cyber:threats).'],
+  ['conflict:ucdp-events-bootstrap:v1',
+    'cascade-mirror: pre-compacted dashboard view of conflict:ucdp-events:v1 (covered by get_conflict_events). Carries the 150 rows the panel renders plus precomputed classifications/aggregates; agents must read the canonical key, which carries all 2,000 events (#5300).'],
+  ['wildfire:fires-bootstrap:v1',
+    'cascade-mirror: pre-compacted dashboard/RPC variant of wildfire:fires:v1 (covered by get_natural_events). It preserves the same top-500 response while avoiding canonical-payload Redis egress.'],
+  ['thermal:escalation-bootstrap:v1',
+    'cascade-mirror: pre-compacted dashboard view of thermal:escalation:v1 (the canonical key remains the tool/RPC source). Capped to the top-24 ranked clusters the dashboard renders — agents should read the canonical key, which carries the full cluster set (#5300).'],
+  ['forecast:predictions-bootstrap:v1',
+    'cascade-mirror: dashboard list projection of forecast:predictions:v2 (covered by get_forecast_predictions). It is the same predictions minus the caseFile dossiers — MCP callers want the dossiers, so the tool keeps reading the canonical key.'],
   ['aviation:delays:intl:v3',
     'cascade-mirror: international delays sibling of aviation:delays-bootstrap:v2 (covered by get_aviation_status) — deferred to a future expanded aviation tool that exposes the intl variant directly.'],
   ['aviation:notam:closures:v2',
@@ -114,6 +146,12 @@ const EXCLUDED_FROM_MCP = new Map([
     'on-demand: written by writeSimulationPackage after deep forecast runs (matches api/health.js:466 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
   ['forecast:simulation-outcome:latest',
     'on-demand: written by writeSimulationOutcome after simulation runs (matches api/health.js:467 ON_DEMAND_KEYS rationale). Internal pipeline artifact, not a queryable slice.'],
+  ['forecast:resolutions:v1',
+    'operational: persistent forecast resolution working ledger with raw per-forecast evidence and audit receipt state. Exposed through health and summarized by get_forecast_scorecard; raw ledger MCP access deferred until a filtered/sliced tool exists.'],
+  ['forecast:bets:history:v1',
+    'operational: shadow bet-engine stream (#5233) written by seed-forecast-bets and ingested by the resolver into the get_forecast_scorecard bet_engine slice. Not a user-facing queryable slice (shadow, never in forecast:predictions:v2), so no MCP tool.'],
+  ['forecast:funnel:health:v1',
+    'operational: funnel-diversity guardrail signal (#5233) written by seed-forecasts afterPublish. Internal health/ops metric surfaced via /api/health (collapse → SEED_ERROR); not a queryable user-facing slice, so no MCP tool.'],
 
   // ===========================================================================
   // Recovery pillar scorer inputs — no dedicated recovery-data MCP tool yet.
@@ -134,6 +172,26 @@ const EXCLUDED_FROM_MCP = new Map([
     'deferred: recovery pillar scorer input. Future resilience tool will expose recovery dimensions.'],
   ['resilience:recovery:sovereign-wealth:v1',
     'deferred: recovery pillar scorer input. Future resilience tool will expose recovery dimensions.'],
+
+  // ===========================================================================
+  // #5055 health-only seed probes added to strict /api/health monitoring.
+  // ===========================================================================
+  ['economic:energy:v1:all',
+    'deferred: strict health seed probe added by #5055; future economic-data MCP expansion can expose energy prices directly.'],
+  ['shared:fx-rates:v1',
+    'deferred: strict health seed probe added by #5055; FX rates are shared infrastructure consumed by seeders and future economic MCP expansion.'],
+  ['infrastructure:submarine-cables:v1',
+    'deferred: strict health seed probe added by #5055; future infrastructure MCP expansion can expose the cable inventory directly.'],
+  ['patents:defense:latest',
+    'deferred: strict health seed probe added by #5055; future military or defense-innovation MCP expansion can expose patent summaries.'],
+  ['conflict:acled:v1:all:0:0',
+    'deferred: strict health seed probe added by #5055; ACLED aggregate currently feeds downstream intelligence and forecast inputs.'],
+  ['portwatch:disruptions:active:v1',
+    'deferred: strict health seed probe added by #5055; disruptions are consumed by chokepoint hazard scoring until a PortWatch MCP expansion exists.'],
+  ['seed-meta:comtrade:bilateral-hs4',
+    'operational: meta-only aggregate health probe added by #5055 for sharded comtrade:bilateral-hs4:{iso2}:v1 payloads; no queryable data slice lives at this key.'],
+  ['research:arxiv:v1:cs.AI::50',
+    'deferred: strict health seed probe added by #5055; future research MCP expansion can expose the ArXiv/HN trending feed.'],
 
   // ===========================================================================
   // Deferred follow-up tools (explicit gaps named in the plan or related domain)
@@ -210,6 +268,24 @@ const EXCLUDED_FROM_MCP = new Map([
     'deferred: derived economic stress composite; underlying inputs already exposed via get_economic_data. A future composite-narrative tool would bundle this.'],
   ['economic:fred:v1:GSCPI:0',
     'deferred: NY Fed Global Supply Chain Pressure Index (single FRED series); supply-chain pressure already broadly covered via get_supply_chain_data + get_chokepoint_status. Future composite supply-chain tool could expose this.'],
+  ['economic:fred:v1:WALCL:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:T10Y2Y:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:UNRATE:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:CPIAUCSL:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:DGS10:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:VIXCLS:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:GDP:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:M2SL:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
+  ['economic:fred:v1:DCOILWTICO:0',
+    'forecast-internal: strict health probe added by #5101 for forecast macro inputs. Fed Funds is the canonical FRED MCP surface today; future expanded macro/rates tool can expose this single series directly.'],
   ['economic:fred:v1:ESTR:0',
     'deferred: ECB €STR short-rate (single FRED series). Future expanded rates tool. Fed Funds (economic:fred:v1:FEDFUNDS:0) already exposed via get_economic_data.'],
   ['economic:fred:v1:EURIBOR3M:0',

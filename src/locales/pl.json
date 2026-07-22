@@ -130,7 +130,54 @@
       "area": "Powierzchnia"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Przegląd kraju: Chiny",
+      "description": "Bieżące dane makro, rynkowe, handlowe, energetyczne i dostępność operacyjna z istniejących publicznych kontraktów danych.",
+      "macroPolicy": "Makro i polityka",
+      "marketCredit": "Rynek i kredyt",
+      "tradeSupply": "Handel i łańcuch dostaw",
+      "energy": "Energia",
+      "availability": "Zagrożenia i lotnictwo",
+      "observed": "Stan na:",
+      "source": "Źródło:",
+      "imfGrowth": "Prognoza wzrostu MFW",
+      "creditGdp": "Kredyt do PKB",
+      "strategicTrade": "Strategiczna ekspozycja handlowa",
+      "crudeImports": "Import ropy naftowej",
+      "gasDemand": "Popyt na gaz",
+      "energyMix": "Miks energetyczny",
+      "coal": "węgiel",
+      "aviationAvailability": "Dostępność lotnictwa",
+      "hazardAvailability": "Dostępność zagrożeń",
+      "noMajorDisruptions": "Nie zgłoszono poważnych zakłóceń",
+      "activeDisruptions_one": "{{count}} aktywne zakłócenie",
+      "activeDisruptions_few": "{{count}} aktywne zakłócenia",
+      "activeDisruptions_many": "{{count}} aktywnych zakłóceń",
+      "activeDisruptions_other": "{{count}} aktywnego zakłócenia",
+      "activeSignals_one": "{{count}} aktywny sygnał",
+      "activeSignals_few": "{{count}} aktywne sygnały",
+      "activeSignals_many": "{{count}} aktywnych sygnałów",
+      "activeSignals_other": "{{count}} aktywnego sygnału",
+      "aviationSource": "Monitoring lotnictwa",
+      "hazardSource": "Sygnały wywiadu krajowego",
+      "marketSource": "Krajowy indeks rynkowy",
+      "ccfiSource": "Szanghajska Giełda Żeglugowa",
+      "comtradeSource": "UN Comtrade, kraj raportujący 156",
+      "sourceUnavailable": "Źródło niedostępne",
+      "macroUnavailable": "Dane makro i polityczne są obecnie niedostępne.",
+      "marketUnavailable": "Dane rynkowe i kredytowe są obecnie niedostępne.",
+      "tradeUnavailable": "Dane o handlu i łańcuchu dostaw są obecnie niedostępne.",
+      "energyUnavailable": "Dane energetyczne są obecnie niedostępne.",
+      "availabilityUnavailable": "Dane o zagrożeniach i lotnictwie są obecnie niedostępne.",
+      "status": {
+        "loading": "Ładowanie",
+        "available": "Dostępne",
+        "partial": "Częściowe",
+        "stale": "Nieaktualne",
+        "unavailable": "Niedostępne"
+      }
+    }
   },
   "header": {
     "world": "ŚWIAT",
@@ -660,15 +707,15 @@
       "logCleared": "Log wyczyszczony.",
       "worldMonitor": {
         "apiKey": {
-          "description": "Wklej swoją licencję, aby natychmiast odblokować wszystkie źródła danych i funkcje AI.",
+          "description": "Subskrybenci API Starter i API Business tworzą ten klucz w panelu internetowym przez Settings → API Keys. Jeśli pełny klucz zostanie utracony, unieważnij go i utwórz nowy.",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "title": "Klucz licencyjny"
+          "title": "Klucz licencyjny / API"
         },
         "dividerOr": "LUB",
         "register": {
-          "description": "Przygotowujemy się do uruchomienia licencji World Monitor. Zarejestruj się teraz i bądź pierwszy w kolejce — pierwsi członkowie otrzymają priorytetowy dostęp i cenę założycielską.",
-          "submitBtn": "Dołącz do listy oczekujących",
-          "title": "Zarezerwuj swoje miejsce"
+          "description": "Instrukcje krok po kroku znajdziesz na worldmonitor.app/docs/api-keys. Ręczne klucze API wymagają planu API Starter lub API Business.",
+          "submitBtn": "Zobacz plany API",
+          "title": "Potrzebujesz klucza API?"
         }
       },
       "shellTitle": "Ustawienia World Monitor",
@@ -699,7 +746,9 @@
         "space": "KOSMOS"
       },
       "paused": "Kamery wstrzymane",
-      "pausedIdle": "Kamery wstrzymane — przesuń mysz, aby wznowić"
+      "pausedIdle": "Kamery wstrzymane — przesuń mysz, aby wznowić",
+      "play": "Odtwórz",
+      "previewStatus": "Podgląd na żywo"
     },
     "regulation": {
       "timeline": "Oś czasu",
@@ -1493,8 +1542,8 @@
       "badgeAnimDesc": "Animuj odznaki aktualizacji w nagłówkach paneli",
       "headlineMemoryLabel": "Pamięć nagłówków",
       "headlineMemoryDesc": "Zapamiętuj widziane nagłówki, aby wyróżnić nowe",
-      "streamAlwaysOnLabel": "Utrzymuj transmisje na żywo",
-      "streamAlwaysOnDesc": "Zapobiega automatycznemu wstrzymywaniu Live Cams i Live News podczas bezczynności. Zalecane do użycia na drugim monitorze / wallboardzie. Wyłącz (Eco), aby oszczędzać CPU/pasmo.",
+      "streamAlwaysOnLabel": "Automatycznie odtwarzaj transmisje na żywo na pulpicie",
+      "streamAlwaysOnDesc": "Automatycznie uruchamia Live News i Live Webcams, gdy są widoczne. Pozostaw wyłączone, aby wideo ładowało się dopiero po kliknięciu Odtwórz.",
       "globeRenderScaleOptions": {
         "1": "Eco (1x)",
         "2": "4K (2x)",
@@ -1538,7 +1587,10 @@
       "signalTypesEvents": "{{types}} typy sygnałów • {{events}} zdarzenia",
       "newsSignals": "{{news}} wiadomości • {{signals}} sygnały",
       "sources_few": "{{count}} źródła",
-      "sources_many": "{{count}} źródeł"
+      "sources_many": "{{count}} źródeł",
+      "provenanceTitle": "Pochodzenie zasięgu: ile pozyskanych artykułów i odrębnych źródeł wybrano dla tego briefu",
+      "compiledFrom": "Zebrane z {{stories}} artykułów z {{sources}} źródeł",
+      "briefFreshness": "Wygenerowano {{minutes}}m temu · najnowsze źródło sprzed {{hours}}h"
     },
     "etfFlows": {
       "unavailable": "Dane ETF tymczasowo niedostępne",
@@ -1658,7 +1710,9 @@
       "verifying": "Weryfikowanie…",
       "noResults": "Nie znaleziono kanałów pasujących do \"{{term}}\"",
       "hlsUrl": "URL strumienia HLS (opcjonalnie)",
-      "invalidHlsUrl": "Wprowadź prawidłowy URL strumienia HLS (.m3u8)"
+      "invalidHlsUrl": "Wprowadź prawidłowy URL strumienia HLS (.m3u8)",
+      "playLiveFeed": "Odtwórz transmisję na żywo",
+      "readyStatus": "Gotowe, gdy Ty jesteś gotowy"
     },
     "securityAdvisories": {
       "loading": "Ładowanie ostrzeżeń podróżnych...",
@@ -2232,7 +2286,7 @@
     },
     "defensePatents": {
       "title": "Sygnał B+R",
-      "infoTooltip": "Tygodniowe zgłoszenia patentów obronnych i dual-use przez Raytheon, Lockheed, Huawei, DARPA i inne organizacje strategiczne. Kategorie: H04B (komunikacja), H01L (półprzewodniki), F42B (amunicja), G06N (AI), C12N (biotechnologia). Źródło: USPTO PatentsView.",
+      "infoTooltip": "Tygodniowe zgłoszenia patentów obronnych i dual-use przez Raytheon, Lockheed, Huawei, DARPA i inne organizacje strategiczne. Kategorie: H04B (komunikacja), H01L (półprzewodniki), F42B (amunicja), G06N (AI), C12N (biotechnologia). Źródło: USPTO Open Data Portal.",
       "loading": "Ładowanie zgłoszeń B+R…",
       "error": "Nie udało się załadować danych patentowych.",
       "empty": "Brak zgłoszeń w tej kategorii.",
@@ -3069,6 +3123,7 @@
     "serverError": "Błąd serwera: {{status}}",
     "unknownError": "Nieznany błąd",
     "generatedWidget": "Wygenerowany widget: {{title}}",
+    "saveFailed": "Nie udało się zapisać widżetu. Spróbuj ponownie.",
     "checkingConnection": "Sprawdzanie dostępu do widgetu…",
     "preflightConnected": "Połączono z agentem widgetu",
     "preflightInvalidKey": "Klucz widgetu odrzucony. Zaktualizuj wm-widget-key i przeładuj.",
@@ -3168,5 +3223,18 @@
     "or": "lub wpisz niestandardowy serwer",
     "generatingVisualization": "Budowanie wizualizacji...",
     "visualizationFailed": "Wizualizacja nie powiodła się"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

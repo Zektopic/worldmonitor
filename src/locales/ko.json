@@ -130,7 +130,50 @@
       "area": "면적"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "중국 국가 스냅숏",
+      "description": "기존 공개 데이터 계약 기반의 거시·시장·무역·에너지·운영 가용성 현황.",
+      "macroPolicy": "거시 & 정책",
+      "marketCredit": "시장 & 신용",
+      "tradeSupply": "무역 & 공급망",
+      "energy": "에너지",
+      "availability": "재해 & 항공",
+      "observed": "기준일:",
+      "source": "출처:",
+      "imfGrowth": "IMF 성장 전망",
+      "creditGdp": "GDP 대비 신용",
+      "strategicTrade": "전략적 무역 익스포저",
+      "crudeImports": "원유 수입량",
+      "gasDemand": "가스 수요",
+      "energyMix": "전원 구성",
+      "coal": "석탄",
+      "aviationAvailability": "항공 가용성",
+      "hazardAvailability": "재해 가용성",
+      "noMajorDisruptions": "보고된 주요 중단 없음",
+      "activeDisruptions_one": "활성 중단 {{count}}건",
+      "activeDisruptions_other": "활성 중단 {{count}}건",
+      "activeSignals_one": "활성 신호 {{count}}건",
+      "activeSignals_other": "활성 신호 {{count}}건",
+      "aviationSource": "항공 모니터링",
+      "hazardSource": "국가 인텔리전스 신호",
+      "marketSource": "국가 시장 지수",
+      "ccfiSource": "상하이 해운 거래소",
+      "comtradeSource": "UN Comtrade 보고국 156",
+      "sourceUnavailable": "출처 없음",
+      "macroUnavailable": "거시 및 정책 데이터를 현재 사용할 수 없습니다.",
+      "marketUnavailable": "시장 및 신용 데이터를 현재 사용할 수 없습니다.",
+      "tradeUnavailable": "무역 및 공급망 데이터를 현재 사용할 수 없습니다.",
+      "energyUnavailable": "에너지 데이터를 현재 사용할 수 없습니다.",
+      "availabilityUnavailable": "재해 및 항공 가용성 데이터를 현재 사용할 수 없습니다.",
+      "status": {
+        "loading": "로딩 중",
+        "available": "사용 가능",
+        "partial": "부분",
+        "stale": "오래됨",
+        "unavailable": "사용 불가"
+      }
+    }
   },
   "header": {
     "world": "세계",
@@ -583,15 +626,15 @@
       "logCleared": "로그가 삭제되었습니다.",
       "worldMonitor": {
         "apiKey": {
-          "title": "라이선스 키",
+          "title": "라이선스 / API 키",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "라이선스를 붙여넣으면 모든 데이터 소스와 AI 기능이 즉시 활성화됩니다."
+          "description": "API Starter 및 API Business 구독자는 웹 대시보드의 Settings → API Keys에서 이 키를 생성합니다. 전체 키를 분실한 경우 기존 키를 취소하고 새 키를 생성하세요."
         },
         "dividerOr": "또는",
         "register": {
-          "title": "슬롯을 예약하세요",
-          "description": "World Monitor 라이선스 출시를 준비하고 있습니다. 지금 등록하고 가장 먼저 — 초기 회원은 우선 액세스 및 창립 멤버 가격을 받게 됩니다.",
-          "submitBtn": "대기 목록 등록"
+          "title": "API 키가 필요하신가요?",
+          "description": "단계별 안내는 worldmonitor.app/docs/api-keys에서 확인하세요. 수동 API 키에는 API Starter 또는 API Business 요금제가 필요합니다.",
+          "submitBtn": "API 요금제 보기"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "미주",
         "asia": "아시아",
         "space": "우주"
-      }
+      },
+      "play": "재생",
+      "previewStatus": "라이브 미리보기"
     },
     "positiveNewsFeed": {
       "noStories": "이 카테고리에 아직 기사가 없습니다"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "패널 헤더의 업데이트 배지 애니메이션",
       "headlineMemoryLabel": "헤드라인 메모리",
       "headlineMemoryDesc": "본 헤드라인을 기억하여 새 기사 강조",
-      "streamAlwaysOnLabel": "라이브 스트림 계속 실행",
-      "streamAlwaysOnDesc": "유휴 상태일 때 Live Cams와 Live News가 자동으로 일시중지되는 것을 방지합니다. 보조 모니터 / 월보드 용도에 권장됩니다. CPU/대역폭 절약을 위해 (Eco)를 끄세요.",
+      "streamAlwaysOnLabel": "대시보드에서 라이브 스트림 자동 재생",
+      "streamAlwaysOnDesc": "Live News와 Live Webcams가 표시될 때 자동으로 시작합니다. 동영상을 재생 클릭 후에만 로드하려면 꺼 둡니다.",
       "analysisFrameworksLabel": "분석 프레임워크",
       "analysisFrameworksActivePerPanel": "패널당 활성",
       "analysisFrameworksSkillLibrary": "스킬 라이브러리",
@@ -1300,7 +1345,10 @@
       "tonePositive": "긍정적",
       "overall": "전체: {{tone}}",
       "signalTypesEvents": "{{types}}개 신호 유형 • {{events}}개 이벤트",
-      "newsSignals": "{{news}}개 뉴스 • {{signals}}개 신호"
+      "newsSignals": "{{news}}개 뉴스 • {{signals}}개 신호",
+      "provenanceTitle": "커버리지 출처: 이 브리프가 선택된 수집 스토리 및 고유 소스의 개수",
+      "compiledFrom": "{{stories}}개의 스토리와 {{sources}}개의 소스에서 컴파일됨",
+      "briefFreshness": "{{minutes}}분 전 생성됨 · 최신 소스 {{hours}}시간 전"
     },
     "settings": {
       "exportSettings": "설정 내보내기",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "유효한 YouTube 핸들을 입력하세요 (예: @ChannelName)",
       "verifying": "확인 중…",
       "hlsUrl": "HLS 스트림 URL (선택사항)",
-      "invalidHlsUrl": "유효한 HLS 스트림 URL (.m3u8)을 입력하세요"
+      "invalidHlsUrl": "유효한 HLS 스트림 URL (.m3u8)을 입력하세요",
+      "playLiveFeed": "라이브 피드 재생",
+      "readyStatus": "준비되면 시작"
     },
     "map": {
       "showMap": "지도 표시",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "R&D 신호",
-      "infoTooltip": "Raytheon, Lockheed, Huawei, DARPA 및 기타 전략 기관의 주간 방위 및 이중용도 특허 출원. 카테고리: H04B (통신), H01L (반도체), F42B (탄약), G06N (AI), C12N (생명공학). 출처: USPTO PatentsView.",
+      "infoTooltip": "Raytheon, Lockheed, Huawei, DARPA 및 기타 전략 기관의 주간 방위 및 이중용도 특허 출원. 카테고리: H04B (통신), H01L (반도체), F42B (탄약), G06N (AI), C12N (생명공학). 출처: USPTO Open Data Portal.",
       "loading": "R&D 출원을 로드 중입니다…",
       "error": "특허 데이터를 로드할 수 없습니다.",
       "empty": "이 카테고리에는 출원이 없습니다.",
@@ -3037,6 +3087,7 @@
     "serverError": "서버 오류: {{status}}",
     "unknownError": "알 수 없는 오류",
     "generatedWidget": "생성된 위젯: {{title}}",
+    "saveFailed": "위젯을 저장하지 못했습니다. 다시 시도해 주세요.",
     "checkingConnection": "위젯 액세스 확인 중…",
     "preflightConnected": "위젯 에이전트에 연결됨",
     "preflightInvalidKey": "위젯 키가 거부되었습니다. wm-widget-key를 업데이트하고 다시 로드하세요.",
@@ -3136,5 +3187,18 @@
     "or": "또는 사용자 지정 서버 입력",
     "generatingVisualization": "시각화 구성 중...",
     "visualizationFailed": "시각화 실패"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

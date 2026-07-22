@@ -130,7 +130,50 @@
       "area": "Έκταση"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Επισκόπηση χώρας: Κίνα",
+      "description": "Τρέχουσα εικόνα μακροοικονομίας, αγοράς, εμπορίου, ενέργειας και επιχειρησιακής διαθεσιμότητας από τα υφιστάμενα δημόσια συμβόλαια δεδομένων.",
+      "macroPolicy": "Μακροοικονομία & Πολιτική",
+      "marketCredit": "Αγορά & Πίστωση",
+      "tradeSupply": "Εμπόριο & Εφοδιαστική αλυσίδα",
+      "energy": "Ενέργεια",
+      "availability": "Κίνδυνοι & Αεροπορία",
+      "observed": "Έως:",
+      "source": "Πηγή:",
+      "imfGrowth": "Πρόβλεψη ανάπτυξης ΔΝΤ",
+      "creditGdp": "Πίστωση προς ΑΕΠ",
+      "strategicTrade": "Στρατηγική εμπορική έκθεση",
+      "crudeImports": "Εισαγωγές αργού πετρελαίου",
+      "gasDemand": "Ζήτηση φυσικού αερίου",
+      "energyMix": "Μείγμα ηλεκτροπαραγωγής",
+      "coal": "άνθρακας",
+      "aviationAvailability": "Διαθεσιμότητα αεροπορίας",
+      "hazardAvailability": "Διαθεσιμότητα κινδύνων",
+      "noMajorDisruptions": "Δεν αναφέρθηκαν σημαντικές διαταραχές",
+      "activeDisruptions_one": "{{count}} ενεργή διαταραχή",
+      "activeDisruptions_other": "{{count}} ενεργές διαταραχές",
+      "activeSignals_one": "{{count}} ενεργό σήμα",
+      "activeSignals_other": "{{count}} ενεργά σήματα",
+      "aviationSource": "Παρακολούθηση αεροπορίας",
+      "hazardSource": "Σήματα πληροφοριών χώρας",
+      "marketSource": "Εθνικός χρηματιστηριακός δείκτης",
+      "ccfiSource": "Ναυτιλιακό Χρηματιστήριο της Σαγκάης",
+      "comtradeSource": "UN Comtrade, δηλούσα χώρα 156",
+      "sourceUnavailable": "Μη διαθέσιμη πηγή",
+      "macroUnavailable": "Τα δεδομένα μακροοικονομίας και πολιτικής δεν είναι διαθέσιμα αυτήν τη στιγμή.",
+      "marketUnavailable": "Τα δεδομένα αγοράς και πίστωσης δεν είναι διαθέσιμα αυτήν τη στιγμή.",
+      "tradeUnavailable": "Τα δεδομένα εμπορίου και εφοδιαστικής αλυσίδας δεν είναι διαθέσιμα αυτήν τη στιγμή.",
+      "energyUnavailable": "Τα ενεργειακά δεδομένα δεν είναι διαθέσιμα αυτήν τη στιγμή.",
+      "availabilityUnavailable": "Τα δεδομένα διαθεσιμότητας κινδύνων και αεροπορίας δεν είναι διαθέσιμα αυτήν τη στιγμή.",
+      "status": {
+        "loading": "Φόρτωση",
+        "available": "Διαθέσιμο",
+        "partial": "Μερικό",
+        "stale": "Παρωχημένο",
+        "unavailable": "Μη διαθέσιμο"
+      }
+    }
   },
   "header": {
     "world": "ΚΟΣΜΟΣ",
@@ -583,15 +626,15 @@
       "logCleared": "Το αρχείο καταγραφής καθαρίστηκε.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Κλειδί Άδειας",
+          "title": "Κλειδί άδειας / API",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Επικολλήστε την άδειά σας για άμεσο ξεκλείδωμα κάθε πηγής δεδομένων και λειτουργίας AI."
+          "description": "Οι συνδρομητές API Starter και API Business δημιουργούν αυτό το κλειδί στον διαδικτυακό πίνακα από Settings → API Keys. Αν χαθεί το πλήρες κλειδί, ανακαλέστε το και δημιουργήστε ένα νέο."
         },
         "dividerOr": "Ή",
         "register": {
-          "title": "Κρατήστε τη Θέση σας",
-          "description": "Ετοιμαζόμαστε να λανσάρουμε τις άδειες World Monitor. Εγγραφείτε τώρα και γίνετε πρώτοι στη σειρά — τα πρώτα μέλη λαμβάνουν προτεραιότητα πρόσβασης και τιμολόγηση ιδρυτικού μέλους.",
-          "submitBtn": "Εγγραφή στη Λίστα"
+          "title": "Χρειάζεστε κλειδί API;",
+          "description": "Δείτε το worldmonitor.app/docs/api-keys για οδηγίες βήμα προς βήμα. Τα μη αυτόματα κλειδιά API απαιτούν πρόγραμμα API Starter ή API Business.",
+          "submitBtn": "Προβολή προγραμμάτων API"
         }
       },
       "table": {
@@ -690,7 +733,9 @@
         "americas": "ΑΜΕΡΙΚΗ",
         "asia": "ΑΣΙΑ",
         "space": "ΔΙΑΣΤΗΜΑ"
-      }
+      },
+      "play": "Αναπαραγωγή",
+      "previewStatus": "Ζωντανή προεπισκόπηση"
     },
     "positiveNewsFeed": {
       "noStories": "Δεν υπάρχουν ακόμα ιστορίες σε αυτή την κατηγορία"
@@ -1264,8 +1309,8 @@
       "badgeAnimDesc": "Κίνηση σημάτων ενημέρωσης στις κεφαλίδες πάνελ",
       "headlineMemoryLabel": "Μνήμη τίτλων",
       "headlineMemoryDesc": "Αποθήκευση τίτλων που είδατε για επισήμανση νέων",
-      "streamAlwaysOnLabel": "Διατήρηση ζωντανών ροών σε λειτουργία",
-      "streamAlwaysOnDesc": "Αποτρέπει την αυτόματη παύση των Live Cams και Live News όταν είστε ανενεργοί. Συνιστάται για χρήση σε δεύτερη οθόνη / wallboard. Απενεργοποιήστε το (Eco) για εξοικονόμηση CPU/εύρους ζώνης.",
+      "streamAlwaysOnLabel": "Αυτόματη αναπαραγωγή ζωντανών ροών στον πίνακα ελέγχου",
+      "streamAlwaysOnDesc": "Ξεκινά αυτόματα το Live News και το Live Webcams όταν είναι ορατά. Αφήστε το απενεργοποιημένο για φόρτωση βίντεο μόνο αφού κάνετε κλικ στην Αναπαραγωγή.",
       "analysisFrameworksLabel": "Πλαίσια Ανάλυσης",
       "analysisFrameworksActivePerPanel": "Ενεργό ανά πίνακα",
       "analysisFrameworksSkillLibrary": "Βιβλιοθήκη Δεξιοτήτων",
@@ -1300,7 +1345,10 @@
       "tonePositive": "Θετικό",
       "overall": "Συνολικά: {{tone}}",
       "signalTypesEvents": "{{types}} τύποι σήματος • {{events}} συμβάντα",
-      "newsSignals": "{{news}} ειδήσεις • {{signals}} σήματα"
+      "newsSignals": "{{news}} ειδήσεις • {{signals}} σήματα",
+      "provenanceTitle": "Προέλευση κάλυψης: πόσες καταχωρημένες ιστορίες και διακριτές πηγές επιλέχθησαν για αυτή τη σύνοψη",
+      "compiledFrom": "Συντάχθηκε από {{stories}} ιστορίες σε {{sources}} πηγές",
+      "briefFreshness": "Δημιουργήθηκε πριν {{minutes}}λ · νεότερη πηγή {{hours}}ώ παλιά"
     },
     "settings": {
       "exportSettings": "Εξαγωγή ρυθμίσεων",
@@ -1773,7 +1821,9 @@
       "invalidHandle": "Εισάγετε ένα έγκυρο YouTube handle (π.χ. @ChannelName)",
       "verifying": "Επαλήθευση…",
       "hlsUrl": "URL ροής HLS (προαιρετικό)",
-      "invalidHlsUrl": "Εισάγετε ένα έγκυρο URL ροής HLS (.m3u8)"
+      "invalidHlsUrl": "Εισάγετε ένα έγκυρο URL ροής HLS (.m3u8)",
+      "playLiveFeed": "Αναπαραγωγή ζωντανής ροής",
+      "readyStatus": "Έτοιμο όταν είστε"
     },
     "map": {
       "showMap": "Εμφάνιση χάρτη",
@@ -2212,7 +2262,7 @@
     },
     "defensePatents": {
       "title": "R&D Signal",
-      "infoTooltip": "Εβδομαδιαία αρχεία άμυνας και διπλής χρήσης από Raytheon, Lockheed, Huawei, DARPA και άλλους στρατηγικούς οργανισμούς. Κατηγορίες: H04B (επικοινωνίες), H01L (ημιαγωγοί), F42B (πυρομαχικά), G06N (AI), C12N (βιοτεχνολογία). Πηγή: USPTO PatentsView.",
+      "infoTooltip": "Εβδομαδιαία αρχεία άμυνας και διπλής χρήσης από Raytheon, Lockheed, Huawei, DARPA και άλλους στρατηγικούς οργανισμούς. Κατηγορίες: H04B (επικοινωνίες), H01L (ημιαγωγοί), F42B (πυρομαχικά), G06N (AI), C12N (βιοτεχνολογία). Πηγή: USPTO Open Data Portal.",
       "loading": "Φόρτωση αρχείων R&D…",
       "error": "Αποτυχία φόρτωσης δεδομένων διπλωμάτων ευρεσιτεχνίας.",
       "empty": "Κανένα αρχείο σε αυτήν την κατηγορία.",
@@ -3037,6 +3087,7 @@
     "serverError": "Σφάλμα διακομιστή: {{status}}",
     "unknownError": "Άγνωστο σφάλμα",
     "generatedWidget": "Δημιουργημένο widget: {{title}}",
+    "saveFailed": "Δεν ήταν δυνατή η αποθήκευση του γραφικού στοιχείου. Δοκιμάστε ξανά.",
     "checkingConnection": "Έλεγχος πρόσβασης widget…",
     "preflightConnected": "Συνδεδεμένο με τον παράγοντα widget",
     "preflightInvalidKey": "Κλειδί widget απορρίφθηκε. Ενημερώστε wm-widget-key και επαναφορτώστε.",
@@ -3136,5 +3187,18 @@
     "or": "ή εισάγετε έναν προσαρμοσμένο διακομιστή",
     "generatingVisualization": "Δημιουργία απεικόνισης...",
     "visualizationFailed": "Η απεικόνιση απέτυχε"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

@@ -1,4 +1,11 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync as originalReadFileSync, statSync } from 'node:fs';
+function readFileSync(path, options) {
+  const content = originalReadFileSync(path, options);
+  if (typeof content === 'string') {
+    return content.replace(/\r\n/g, '\n');
+  }
+  return content;
+}
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -151,16 +158,15 @@ describe('Comtrade bilateral HS4 seeder (scripts/seed-comtrade-bilateral-hs4.mjs
     );
   });
 
-  it('defines exactly 20 HS4 codes', () => {
-    const match = src.match(/HS4_CODES\s*=\s*\[([\s\S]*?)\]/);
-    assert.ok(match, 'seeder: HS4_CODES array must be defined');
-    const codes = match[1].match(/'(\d{4})'/g);
-    assert.ok(codes, 'seeder: HS4_CODES must contain quoted 4-digit codes');
-    assert.strictEqual(
-      codes.length,
-      20,
-      `seeder: HS4_CODES must have exactly 20 codes, got ${codes.length}`,
+  it('derives HS4 codes from the shared strategic-product metadata', () => {
+    assert.ok(
+      src.includes("require('./shared/comtrade-strategic-products.json')"),
+      'seeder: HS4 codes must come from the reviewed shared metadata',
     );
+    assert.doesNotMatch(src, /const\s+HS4_CODES\s*=\s*\[/, 'seeder: must not carry an inline HS4 list');
+    const metadata = JSON.parse(readFileSync(join(root, 'scripts', 'shared', 'comtrade-strategic-products.json'), 'utf8'));
+    const codes = new Set(metadata.products.map(product => product.bilateralHs4Code).filter(Boolean));
+    assert.equal(codes.size, 20, `seeder: must preserve the two-batch 500-calls/month quota budget, got ${codes.size} codes`);
   });
 
   it('does NOT write empty data to Redis on fetch failure (preserves existing data)', () => {
@@ -281,6 +287,7 @@ describe('Comtrade reporter-code source-of-truth guard', () => {
   function collectRuntimeSources(dir) {
     const out = [];
     for (const name of readdirSync(dir)) {
+      if (name === '_bundle-runner-test-run.mjs' || name.startsWith('_bundle-fixture-')) continue;
       const filePath = join(dir, name);
       const stat = statSync(filePath);
       if (stat.isDirectory()) {
@@ -288,7 +295,9 @@ describe('Comtrade reporter-code source-of-truth guard', () => {
         out.push(...collectRuntimeSources(filePath));
         continue;
       }
-      if (/\.(?:mjs|js|ts)$/.test(name)) out.push(filePath);
+      if (/\.(?:mjs|js|ts)$/.test(name)) {
+        out.push(filePath);
+      }
     }
     return out;
   }
@@ -315,6 +324,13 @@ describe('Comtrade reporter-code source-of-truth guard', () => {
     assert.equal(hasStaleInlineReporterMap("const ISO2_TO_COMTRADE_OVERRIDES = { IN: '699' };"), true);
     assert.equal(hasStaleInlineReporterMap("const COMTRADE_REPORTER_OVERRIDES = { TW: '490' };"), true);
     assert.equal(hasStaleInlineReporterMap("const OTHER_MAP = { IN: '699', TW: '490' };"), false);
+  });
+
+  it('keeps the committed bundle runner in the runtime-source audit', () => {
+    assert.ok(
+      checkedFiles.includes(join(root, 'scripts', '_bundle-runner.mjs')),
+      'the committed bundle runner must remain covered by the runtime-source audit',
+    );
   });
 
   it('does not reintroduce stale inline IN/TW-only reporter maps in runtime sources', () => {

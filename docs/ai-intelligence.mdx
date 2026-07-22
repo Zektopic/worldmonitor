@@ -1,6 +1,6 @@
 ---
 title: "AI Intelligence"
-description: "LLM chains, RAG pipelines, threat classification, deduction engines, and browser-side ML used in World Monitor."
+description: "LLM chains, RAG pipelines, threat classification, deduction engines, and browser-side ML that power World Monitor's AI-driven analysis stack."
 ---
 
 ## AI Summarization
@@ -142,6 +142,14 @@ Every news item passes through a three-stage classification pipeline:
 3. **LLM classifier** (batched async, `source: 'llm'`) — headlines are collected into a batch queue and fired as parallel `classifyEvent` RPCs via the sebuf proto client. Each RPC calls the configured LLM provider (Groq Llama 3.1 8B at temperature 0, or Ollama for local inference). Results are cached in Redis (24h TTL) keyed by headline hash. When 500-series errors occur, the LLM classifier automatically pauses its queue to avoid wasting API quota, resuming after an exponential backoff delay. When the LLM result arrives, it overrides the keyword result only if its confidence is higher.
 
 This hybrid approach means the UI is never blocked waiting for AI — users see keyword results instantly, with ML and LLM refinements arriving within seconds and persisting for all subsequent visitors. Each classification carries its `source` tag (`keyword`, `ml`, or `llm`) so downstream consumers can weight confidence accordingly.
+
+### Backed by endpoints
+
+| Surface | Endpoint | Notes |
+|---|---|---|
+| Event classification | `GET /api/intelligence/v1/classify-event` | Direct REST RPC used by the generated client; server results are cached by headline hash. |
+| Country factual context | `GET /api/intelligence/v1/get-country-facts` | RestCountries / Wikipedia context for country-brief and dossier workflows. |
+| Summary cache lookup | `GET /api/news/v1/summarize-article-cache` | CDN-cacheable lookup for deterministic summary keys; generation remains `POST /api/news/v1/summarize-article`. |
 
 ## Alerts
 

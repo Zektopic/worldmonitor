@@ -9,6 +9,10 @@ export const PREMIUM_RPC_PATHS = new Set<string>([
   '/api/market/v1/get-stock-analysis-history',
   '/api/market/v1/backtest-stock',
   '/api/market/v1/list-stored-stock-backtests',
+  // /api/intelligence/v1/classify-event: LLM-backed classifier. Keep in the
+  // premium path set so browser Pro callers attach the Clerk Bearer and
+  // anonymous wms_ sessions cannot mint cache-miss LLM spend.
+  '/api/intelligence/v1/classify-event',
   '/api/intelligence/v1/deduct-situation',
   '/api/intelligence/v1/list-market-implications',
   '/api/intelligence/v1/get-regional-snapshot',
@@ -25,6 +29,10 @@ export const PREMIUM_RPC_PATHS = new Set<string>([
   '/api/supply-chain/v1/get-multi-sector-cost-shock',
   '/api/supply-chain/v1/get-sector-dependency',
   '/api/economic/v1/get-national-debt',
+  // Global procurement is a Pro product surface. Keep this in the shared
+  // registry so premiumFetch attaches the Clerk bearer and the gateway enforces
+  // the same route as the entitlement map.
+  '/api/economic/v1/list-global-tenders',
   '/api/sanctions/v1/list-sanctions-pressure',
   '/api/trade/v1/list-comtrade-flows',
   '/api/trade/v1/get-tariff-trends',

@@ -130,7 +130,52 @@
       "area": "Superficie"
     },
     "loadingResilienceScore": "Loading resilience score…",
-    "resilienceScoreUnavailable": "Resilience score unavailable."
+    "resilienceScoreUnavailable": "Resilience score unavailable.",
+    "china": {
+      "title": "Panorama de país: China",
+      "description": "Situación actual de macro, mercado, comercio, energía y disponibilidad operativa a partir de los contratos de datos públicos existentes.",
+      "macroPolicy": "Macro y política",
+      "marketCredit": "Mercado y crédito",
+      "tradeSupply": "Comercio y cadena de suministro",
+      "energy": "Energía",
+      "availability": "Riesgos y aviación",
+      "observed": "A fecha de:",
+      "source": "Fuente:",
+      "imfGrowth": "Previsión de crecimiento del FMI",
+      "creditGdp": "Crédito sobre PIB",
+      "strategicTrade": "Exposición comercial estratégica",
+      "crudeImports": "Importaciones de crudo",
+      "gasDemand": "Demanda de gas",
+      "energyMix": "Mix eléctrico",
+      "coal": "carbón",
+      "aviationAvailability": "Disponibilidad aérea",
+      "hazardAvailability": "Disponibilidad de riesgos",
+      "noMajorDisruptions": "Sin interrupciones importantes notificadas",
+      "activeDisruptions_one": "{{count}} interrupción activa",
+      "activeDisruptions_many": "{{count}} interrupciones activas",
+      "activeDisruptions_other": "{{count}} interrupciones activas",
+      "activeSignals_one": "{{count}} señal activa",
+      "activeSignals_many": "{{count}} señales activas",
+      "activeSignals_other": "{{count}} señales activas",
+      "aviationSource": "Supervisión aérea",
+      "hazardSource": "Señales de inteligencia del país",
+      "marketSource": "Índice bursátil nacional",
+      "ccfiSource": "Bolsa de Transporte Marítimo de Shanghái",
+      "comtradeSource": "UN Comtrade, declarante 156",
+      "sourceUnavailable": "Fuente no disponible",
+      "macroUnavailable": "Los datos macro y de política no están disponibles actualmente.",
+      "marketUnavailable": "Los datos de mercado y crédito no están disponibles actualmente.",
+      "tradeUnavailable": "Los datos de comercio y cadena de suministro no están disponibles actualmente.",
+      "energyUnavailable": "Los datos de energía no están disponibles actualmente.",
+      "availabilityUnavailable": "Los datos de disponibilidad de riesgos y aviación no están disponibles actualmente.",
+      "status": {
+        "loading": "Cargando",
+        "available": "Disponible",
+        "partial": "Parcial",
+        "stale": "Desactualizado",
+        "unavailable": "No disponible"
+      }
+    }
   },
   "header": {
     "world": "MUNDO",
@@ -660,15 +705,15 @@
       "logCleared": "Registro borrado.",
       "worldMonitor": {
         "apiKey": {
-          "title": "Clave de licencia",
+          "title": "Clave de licencia / API",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
-          "description": "Pegue su licencia para desbloquear todas las fuentes de datos y funciones de IA al instante."
+          "description": "Los suscriptores de API Starter y API Business crean esta clave en el panel web desde Settings → API Keys. Si pierde la clave completa, revóquela y cree una de reemplazo."
         },
         "dividerOr": "O",
         "register": {
-          "title": "Reserve su lugar",
-          "description": "Estamos preparando el lanzamiento de las licencias de World Monitor. Regístrese ahora y sea el primero — los miembros tempranos obtienen acceso prioritario y precios de miembro fundador.",
-          "submitBtn": "Unirse a la lista de espera"
+          "title": "¿Necesita una clave API?",
+          "description": "Consulte worldmonitor.app/docs/api-keys para obtener instrucciones paso a paso. Las claves API manuales requieren un plan API Starter o API Business.",
+          "submitBtn": "Ver planes API"
         }
       },
       "shellTitle": "Configuración de World Monitor",
@@ -699,7 +744,9 @@
         "space": "ESPACIO"
       },
       "paused": "Cámaras en pausa",
-      "pausedIdle": "Cámaras en pausa — mueva el ratón para reanudar"
+      "pausedIdle": "Cámaras en pausa — mueva el ratón para reanudar",
+      "play": "Reproducir",
+      "previewStatus": "Vista previa en vivo"
     },
     "regulation": {
       "timeline": "Línea de tiempo",
@@ -1557,8 +1604,8 @@
       "badgeAnimDesc": "Animar insignias de actualización en encabezados de paneles",
       "headlineMemoryLabel": "Memoria de titulares",
       "headlineMemoryDesc": "Recordar titulares vistos para resaltar nuevos",
-      "streamAlwaysOnLabel": "Mantener transmisiones en vivo activas",
-      "streamAlwaysOnDesc": "Evita que Live Cams y Live News se pausen automáticamente cuando estás inactivo. Recomendado para uso en segundo monitor / panel mural. Desactívalo (Eco) para ahorrar CPU/ancho de banda.",
+      "streamAlwaysOnLabel": "Reproducir automáticamente transmisiones en vivo en el panel",
+      "streamAlwaysOnDesc": "Inicia Live News y Live Webcams automáticamente cuando están visibles. Déjalo desactivado para cargar video solo después de hacer clic en Reproducir.",
       "globeRenderScaleOptions": {
         "1": "Eco (1x)",
         "2": "4K (2x)",
@@ -1601,7 +1648,10 @@
       "overall": "General: {{tone}}",
       "signalTypesEvents": "{{types}} tipos de señal • {{events}} eventos",
       "newsSignals": "{{news}} noticias • {{signals}} señales",
-      "sources_many": "{{count}} fuentes"
+      "sources_many": "{{count}} fuentes",
+      "provenanceTitle": "Procedencia de cobertura: cuántas historias ingeridas y fuentes distintas se seleccionaron para este resumen",
+      "compiledFrom": "Compilado de {{stories}} historias en {{sources}} fuentes",
+      "briefFreshness": "Generado hace {{minutes}}m · fuente más reciente con {{hours}}h de antigüedad"
     },
     "etfFlows": {
       "unavailable": "Datos ETF temporalmente no disponibles",
@@ -1721,7 +1771,9 @@
       "verifying": "Verificando…",
       "noResults": "No se encontraron canales que coincidan con \"{{term}}\"",
       "hlsUrl": "URL de transmisión HLS (opcional)",
-      "invalidHlsUrl": "Introduzca una URL de transmisión HLS válida (.m3u8)"
+      "invalidHlsUrl": "Introduzca una URL de transmisión HLS válida (.m3u8)",
+      "playLiveFeed": "Reproducir transmisión en vivo",
+      "readyStatus": "Listo cuando quieras"
     },
     "securityAdvisories": {
       "loading": "Cargando alertas de viaje...",
@@ -2222,7 +2274,7 @@
     },
     "defensePatents": {
       "title": "Señal I+D",
-      "infoTooltip": "Solicitudes semanales de patentes de defensa y uso dual por Raytheon, Lockheed, Huawei, DARPA y otras organizaciones estratégicas. Categorías: H04B (comunicaciones), H01L (semiconductores), F42B (municiones), G06N (IA), C12N (biotecnología). Fuente: USPTO PatentsView.",
+      "infoTooltip": "Solicitudes semanales de patentes de defensa y uso dual por Raytheon, Lockheed, Huawei, DARPA y otras organizaciones estratégicas. Categorías: H04B (comunicaciones), H01L (semiconductores), F42B (municiones), G06N (IA), C12N (biotecnología). Fuente: USPTO Open Data Portal.",
       "loading": "Cargando solicitudes I+D…",
       "error": "No se pudieron cargar los datos de patentes.",
       "empty": "Sin solicitudes en esta categoría.",
@@ -3053,6 +3105,7 @@
     "serverError": "Error del servidor: {{status}}",
     "unknownError": "Error desconocido",
     "generatedWidget": "Widget generado: {{title}}",
+    "saveFailed": "No se pudo guardar el widget. Inténtalo de nuevo.",
     "checkingConnection": "Verificando acceso al widget…",
     "preflightConnected": "Conectado al agente de widget",
     "preflightInvalidKey": "Clave de widget rechazada. Actualiza wm-widget-key y recarga.",
@@ -3152,5 +3205,18 @@
     "or": "o ingresa un servidor personalizado",
     "generatingVisualization": "Construyendo visualización...",
     "visualizationFailed": "Error en la visualización"
+  },
+  "dashboardTabs": {
+    "ariaLabel": "Dashboard tabs",
+    "defaultName": "Main",
+    "newTabName": "New Tab",
+    "newTabCreated": "New tab created",
+    "tabDeleted": "Tab \"{{name}}\" deleted",
+    "addTab": "Add tab",
+    "addTabTitle": "New tab (starts with the default panels)",
+    "renameHint": "{{name}} — double-click to rename",
+    "deleteTab": "Delete tab",
+    "deleteTabAria": "Delete tab {{name}}",
+    "tabNameAria": "Tab name"
   }
 }

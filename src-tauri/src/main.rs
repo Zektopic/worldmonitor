@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod cache_bounds;
+
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File, OpenOptions};
@@ -17,6 +19,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Manager, RunEvent, Webview, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+
+use cache_bounds::validate_cache_write_sizes;
 
 const DEFAULT_LOCAL_API_PORT: u16 = 46123;
 const KEYRING_SERVICE: &str = "world-monitor";
@@ -274,11 +278,12 @@ fn get_local_api_port(webview: Webview, state: tauri::State<'_, LocalApiState>) 
 }
 
 #[tauri::command]
-fn list_supported_secret_keys() -> Vec<String> {
-    SUPPORTED_SECRET_KEYS
+fn list_supported_secret_keys(webview: Webview) -> Result<Vec<String>, String> {
+    require_trusted_window(webview.label())?;
+    Ok(SUPPORTED_SECRET_KEYS
         .iter()
         .map(|key| (*key).to_string())
-        .collect()
+        .collect())
 }
 
 #[tauri::command]
@@ -463,6 +468,7 @@ fn delete_cache_entries_by_prefix(webview: Webview, app: AppHandle, cache: tauri
 #[tauri::command]
 fn write_cache_entry(webview: Webview, app: AppHandle, cache: tauri::State<'_, PersistentCache>, key: String, value: String) -> Result<(), String> {
     require_trusted_window(webview.label())?;
+    validate_cache_write_sizes(&key, &value)?;
     let parsed_value: Value = serde_json::from_str(&value)
         .map_err(|e| format!("Invalid cache payload JSON: {e}"))?;
     {
@@ -512,33 +518,29 @@ fn append_desktop_log(app: &AppHandle, level: &str, message: &str) {
 }
 
 fn open_in_shell(arg: &str) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut cmd = Command::new("open");
-        cmd.arg(arg);
-        cmd
-    };
-
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/c", "start", "", arg]);
-        cmd
-    };
-
+    // Linux keeps its own path: spawn xdg-open directly with LD_* scrubbed
+    // (library-injection hardening that a generic opener would drop).
     #[cfg(all(unix, not(target_os = "macos")))]
-    let mut command = {
+    {
         let mut cmd = Command::new("xdg-open");
         cmd.arg(arg);
         cmd.env_remove("LD_LIBRARY_PATH");
         cmd.env_remove("LD_PRELOAD");
-        cmd
-    };
+        cmd.spawn()
+            .map(|_| ())
+            .map_err(|e| format!("Failed to open {}: {e}", arg))
+    }
 
-    command
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Failed to open {}: {e}", arg))
+    // macOS + Windows: `opener` opens the target with the OS default handler
+    // via `/usr/bin/open` (macOS) and `ShellExecuteW` (Windows). It NEVER routes
+    // through `cmd.exe`, so a URL containing shell metacharacters (`&`, `|`, …)
+    // is passed as a single argument and cannot inject commands. This is the fix
+    // for GHSA-2x6r-qq54-mmhr: the old Windows branch ran `cmd /c start "" <url>`
+    // with the URL unquoted, so `https://x/?a=1&calc` executed `calc` on click.
+    #[cfg(not(all(unix, not(target_os = "macos"))))]
+    {
+        opener::open(arg).map_err(|e| format!("Failed to open {}: {e}", arg))
+    }
 }
 
 fn open_path_in_shell(path: &Path) -> Result<(), String> {
@@ -577,22 +579,26 @@ fn open_sidecar_log_impl(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
-fn open_logs_folder(app: AppHandle) -> Result<String, String> {
+fn open_logs_folder(webview: Webview, app: AppHandle) -> Result<String, String> {
+    require_trusted_window(webview.label())?;
     open_logs_folder_impl(&app).map(|path| path.display().to_string())
 }
 
 #[tauri::command]
-fn open_sidecar_log_file(app: AppHandle) -> Result<String, String> {
+fn open_sidecar_log_file(webview: Webview, app: AppHandle) -> Result<String, String> {
+    require_trusted_window(webview.label())?;
     open_sidecar_log_impl(&app).map(|path| path.display().to_string())
 }
 
 #[tauri::command]
-async fn open_settings_window_command(app: AppHandle) -> Result<(), String> {
+async fn open_settings_window_command(webview: Webview, app: AppHandle) -> Result<(), String> {
+    require_trusted_window(webview.label())?;
     open_settings_window(&app)
 }
 
 #[tauri::command]
-fn close_settings_window(app: AppHandle) -> Result<(), String> {
+fn close_settings_window(webview: Webview, app: AppHandle) -> Result<(), String> {
+    require_trusted_window(webview.label())?;
     if let Some(window) = app.get_webview_window("settings") {
         window
             .close()
@@ -625,7 +631,8 @@ async fn open_live_channels_window_command(
 }
 
 #[tauri::command]
-fn close_live_channels_window(app: AppHandle) -> Result<(), String> {
+fn close_live_channels_window(webview: Webview, app: AppHandle) -> Result<(), String> {
+    require_trusted_window(webview.label())?;
     if let Some(window) = app.get_webview_window("live-channels") {
         window
             .close()

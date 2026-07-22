@@ -41,7 +41,6 @@ export default [
   "openai.com",
   "www.reutersagency.com",
   "feeds.reuters.com",
-  "rsshub.app",
   "asia.nikkei.com",
   "www.cfr.org",
   "www.csis.org",
@@ -337,5 +336,8 @@ export default [
   "n1info.hr",
   "www.index.hr",
   "www.jutarnji.hr",
-  "balkaninsight.com"
+  "balkaninsight.com",
+  "www.war.gov",
+  "www.thenationalnews.com",
+  "trumpstruth.org"
 ];
