@@ -23,8 +23,8 @@ export const BASELINE_ADVISORIES_BY_LOCKFILE = {
   // semver-major across both chains; baselined until the parents bump. The
   // same reasoning covers blog-site below: sharp runs only at Astro build
   // time over repo-owned images, and the fix requires astro@7 (semver-major).
-  'package-lock.json': ['GHSA-w7jw-789q-3m8p', 'GHSA-f88m-g3jw-g9cj'],
-  'consumer-prices-core/package-lock.json': ['GHSA-jx2c-rxcm-jvmq', 'GHSA-q3j6-qgpj-74h6', 'GHSA-v39h-62p7-jpjc'],
+  'package-lock.json': ['GHSA-f88m-g3jw-g9cj'],
+  'consumer-prices-core/package-lock.json': [],
   'blog-site/package-lock.json': ['GHSA-2pvr-wf23-7pc7', 'GHSA-f88m-g3jw-g9cj'],
   // GHSA-395f-4hp3-45gv (shell-quote quadratic-complexity DoS in parse()) reaches
   // pro-test only via react-native -> react-devtools-core, a mobile/dev-tooling
@@ -33,7 +33,7 @@ export const BASELINE_ADVISORIES_BY_LOCKFILE = {
   // `overrides` pin bump) would drag an otherwise-untouched public/pro/ rebuild
   // into a lockfile-hygiene change. Baselined rather than patched here; drop it
   // once react-native leaves pro-test's tree. (GHSA-qjx8/w24r predate this.)
-  'pro-test/package-lock.json': ['GHSA-qjx8-664m-686j', 'GHSA-w24r-5266-9c3c', 'GHSA-w7jw-789q-3m8p', 'GHSA-395f-4hp3-45gv'],
+  'pro-test/package-lock.json': ['GHSA-qjx8-664m-686j', 'GHSA-w24r-5266-9c3c', 'GHSA-395f-4hp3-45gv'],
   'scripts/package-lock.json': [],
   'docker/runtime-package-lock.json': [],
 };
