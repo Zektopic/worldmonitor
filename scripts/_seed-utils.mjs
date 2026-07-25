@@ -768,8 +768,9 @@ export async function extendExistingTtl(keys, ttlSeconds = 600) {
       return r;
     }, 2, 1000);
     const results = await resp.json();
-    const extended = results.filter(r => r?.result === 1).length;
-    const missing = results.filter(r => r?.result === 0).length;
+    const resList = Array.isArray(results) ? results : [];
+    const extended = resList.filter(r => r?.result === 1).length;
+    const missing = resList.filter(r => r?.result === 0).length;
     if (extended > 0) console.log(`  Extended TTL on ${extended} key(s) (${ttlSeconds}s)`);
     if (missing > 0) console.warn(`  WARNING: ${missing} key(s) were expired/missing — EXPIRE was a no-op; manual seed required`);
     return missing === 0 && extended === keys.length;
