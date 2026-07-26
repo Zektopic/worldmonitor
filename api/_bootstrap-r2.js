@@ -78,6 +78,7 @@ function fallback(reason, startedAt) {
 export async function readBootstrapTierObject(tier, options = {}) {
   const startedAt = performance.now();
   const {
+    signal: callerSignal,
     timeoutMs,
     nowMs = Date.now(),
     env = process.env,
@@ -92,7 +93,7 @@ export async function readBootstrapTierObject(tier, options = {}) {
   let signal;
   let response;
   try {
-    signal = AbortSignal.timeout(timeoutMs);
+    signal = callerSignal || (Number.isFinite(timeoutMs) && timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined);
     const client = awsClientFactory({
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,

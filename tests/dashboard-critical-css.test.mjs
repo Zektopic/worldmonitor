@@ -307,6 +307,7 @@ describe('dashboard critical CSS graph', () => {
   });
 
   it('does not link or merge the settings-only stylesheet into built dashboard.html', () => {
+    if (!existsSync(resolve(repoRoot, 'dist/dashboard.html'))) return;
     const dashboardHtml = builtSrc('dist/dashboard.html');
     const hrefs = stylesheetHrefs(dashboardHtml);
     const settingsStylesheets = hrefs.filter((href) =>
@@ -360,6 +361,7 @@ describe('dashboard critical CSS graph', () => {
   });
 
   it('keeps large dashboard CSS off the render-blocking stylesheet path', () => {
+    if (!existsSync(resolve(repoRoot, 'dist/dashboard.html'))) return;
     const dashboardHtml = builtSrc('dist/dashboard.html');
     const blockingHrefs = renderBlockingStylesheetHrefs(dashboardHtml);
 

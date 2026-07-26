@@ -102,13 +102,15 @@ describe('readBootstrapTierObject', () => {
   });
 
   it('returns timeout promptly when the caller-supplied signal expires', async () => {
-    const timeoutMs = 10;
+    const controller = new AbortController();
+    controller.abort(new DOMException('TimeoutError', 'TimeoutError'));
     const startedAt = performance.now();
     const result = await readBootstrapTierObject('fast', readerOptions(null, {
-      timeoutMs,
+      signal: controller.signal,
       awsClientFactory: () => ({
-        fetch: async (_url, { signal }) => await new Promise((_resolve, reject) => {
-          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+        fetch: (_url, { signal }) => new Promise((_resolve, reject) => {
+          if (signal?.aborted) return reject(signal.reason);
+          signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
         }),
       }),
     }));
@@ -120,14 +122,17 @@ describe('readBootstrapTierObject', () => {
   });
 
   it('returns timeout when the response body stalls after headers arrive', async () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException('TimeoutError', 'TimeoutError'));
     const result = await readBootstrapTierObject('fast', readerOptions(null, {
-      timeoutMs: 10,
+      signal: controller.signal,
       awsClientFactory: () => ({
         fetch: async (_url, { signal }) => ({
           status: 200,
           ok: true,
-          json: async () => await new Promise((_resolve, reject) => {
-            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          json: () => new Promise((_resolve, reject) => {
+            if (signal?.aborted) return reject(signal.reason);
+            signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
           }),
         }),
       }),
