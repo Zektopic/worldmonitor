@@ -1,11 +1,12 @@
 ---
 title: "Ground-Truth Inflation: Tracking Real Shelf Prices, Not Just CPI"
-description: "WorldMonitor scrapes real supermarket shelf prices — starting with four UAE retailers — and pairs them with the Big Mac Index, FAO food prices, fuel prices, and IMF CPI."
+description: "WorldMonitor tracks supermarket shelf prices across four UAE retailers and compares them with the Big Mac Index, FAO food prices, fuel prices, and IMF CPI."
 metaTitle: "Real-Time Shelf Price & Inflation Tracking | WorldMonitor"
 keywords: "real time inflation data, grocery price tracker, consumer prices API, shelf price monitoring, cost of living dashboard, food price index"
 audience: "Economists, macro analysts, journalists, expats, cost-of-living researchers"
-heroImage: "/blog/og/ground-truth-inflation-shelf-price-tracking-worldmonitor.png"
+heroImage: "/blog/images/blog/ground-truth-inflation-shelf-price-tracking-worldmonitor.jpg"
 pubDate: "2026-07-21"
+modifiedDate: "2026-07-22"
 ---
 
 Official inflation is a lagging average of an averaged lag. A national CPI print arrives weeks after the month it measures, blends thousands of items into one number, and tells you nothing about whether *your* basket at *your* store got more expensive on Tuesday.
@@ -16,7 +17,7 @@ The interesting question — what do things actually cost, right now, on the she
 
 The pilot market is the **United Arab Emirates**, where WorldMonitor tracks a defined essentials basket across **four major grocery retailers: Carrefour, Spinneys, Lulu, and Noon**. Real product pages, real listed prices — collected continuously and normalized into a comparable basket.
 
-From that raw feed, the Consumer Prices panel serves:
+From that raw feed, the [Consumer Prices](https://www.worldmonitor.app/docs/panels/consumer-prices) panel serves:
 
 - a **30-day overview** of basket-level price movement,
 - **category inflation** — which aisles are moving, not just whether "food" is up,
@@ -30,9 +31,9 @@ Basket definitions for additional countries — the US, UK, Australia, India, Br
 
 Shelf-price truth is most useful next to its slower official cousins, so the platform keeps them adjacent:
 
-- **IMF WEO official CPI** for ~195 countries — the world-inflation reference layer.
+- **IMF WEO official CPI** with broad country coverage — the world-inflation reference layer.
 - The **Big Mac Index** — the classic purchasing-power shorthand.
-- The **FAO Food Price Index** — global food-commodity pressure upstream of your grocery store.
+- The **[FAO Food Price Index](https://www.worldmonitor.app/docs/api-reference/economicservice/getfaofoodpriceindex)** — global food-commodity pressure upstream of your grocery store.
 - **Retail fuel prices** — the other price everyone feels weekly.
 
 Read them as a chain: FAO tells you global food inputs are rising; tariff and freight data tells you the [transmission path](/blog/posts/tracking-global-trade-routes-chokepoints-freight-costs/) is stressed; shelf prices tell you the exact week it reached the checkout. That last link is the one official statistics can't give you.
@@ -45,11 +46,15 @@ The `get_consumer_prices` MCP tool (UAE today) returns the overview, category in
 
 Coverage is honest about being narrow: one country live, four retailers, an essentials basket — a precise instrument, not yet a global one. Scraped prices reflect listed shelf prices, not loyalty discounts or in-store promotions. And a retailer basket is deliberately not a CPI replacement: it trades statistical breadth for speed and specificity. Use both — that's why both are on the dashboard.
 
+## Benchmark Sources
+
+Compare shelf-price observations with official benchmarks such as the FAO [Food Price Index](https://www.fao.org/worldfoodsituation/foodpricesindex/) and the IMF's [Consumer Price Index dataset](https://data.imf.org/en/datasets/IMF.STA:CPI). The series measure different baskets and frequencies, so disagreement can be informative rather than erroneous.
+
 ## Frequently Asked Questions
 
 **Which countries have live shelf-price tracking?**
 
-The UAE, across Carrefour, Spinneys, Lulu, and Noon. Basket configurations for the US, UK, Australia, India, Brazil, Singapore, Switzerland, Kenya, and others are staged for expansion. Official IMF CPI context covers ~195 countries today.
+The UAE, across Carrefour, Spinneys, Lulu, and Noon. Basket configurations for the US, UK, Australia, India, Brazil, Singapore, Switzerland, Kenya, and others are staged for expansion. Official IMF CPI context provides broad country coverage.
 
 **How is this different from official inflation statistics?**
 
@@ -57,7 +62,7 @@ Official CPI is broad, methodologically rigorous, and weeks delayed. Shelf-price
 
 **Can I query the price data programmatically?**
 
-Yes — the `get_consumer_prices` MCP tool and the consumer-prices REST endpoints in the [API reference](https://www.worldmonitor.app/docs/api-reference) return the overview, categories, movers, and retailer spread as structured series.
+Yes — the `get_consumer_prices` MCP tool and the consumer-prices REST endpoints in the [API reference](https://www.worldmonitor.app/docs/api-reference) return the overview, categories, movers, and [retailer spread](https://www.worldmonitor.app/docs/api-reference/consumerpricesservice/listretailerpricespreads) as structured series.
 
 ---
 

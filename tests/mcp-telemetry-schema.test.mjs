@@ -1,5 +1,5 @@
-// Closed-key allowlist contract for the two MCP telemetry events
-// (`mcp.toolcall` + `mcp.tools_list_emitted`). The exported allowlists in
+// Closed-key allowlist contract for MCP telemetry events (`mcp.toolcall`,
+// `mcp.downstream`, `mcp.tools_list_emitted`, and `mcp.rate_limit_hit`). The exported allowlists in
 // api/mcp.ts are the schema of what is allowed to land in the log drain.
 // This file is what makes them load-bearing: any new top-level key on an
 // emitted JSON line that isn't in the matching allowlist fails by name,
@@ -83,6 +83,7 @@ describe('api/mcp.ts — telemetry redaction (closed-key allowlist)', () => {
   let MCP_TOOLCALL_TELEMETRY_KEYS;
   let MCP_TOOLS_LIST_TELEMETRY_KEYS;
   let MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS;
+  let MCP_DOWNSTREAM_TELEMETRY_KEYS;
   let emitMcpRateLimitHit;
   let captured;
   let origLog;
@@ -97,6 +98,7 @@ describe('api/mcp.ts — telemetry redaction (closed-key allowlist)', () => {
     MCP_TOOLCALL_TELEMETRY_KEYS = mod.MCP_TOOLCALL_TELEMETRY_KEYS;
     MCP_TOOLS_LIST_TELEMETRY_KEYS = mod.MCP_TOOLS_LIST_TELEMETRY_KEYS;
     MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS = mod.MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS;
+    MCP_DOWNSTREAM_TELEMETRY_KEYS = mod.MCP_DOWNSTREAM_TELEMETRY_KEYS;
     emitMcpRateLimitHit = mod.emitMcpRateLimitHit;
     captured = [];
     origLog = console.log;
@@ -119,6 +121,8 @@ describe('api/mcp.ts — telemetry redaction (closed-key allowlist)', () => {
     assert.ok(MCP_TOOLS_LIST_TELEMETRY_KEYS.length > 0, 'MCP_TOOLS_LIST_TELEMETRY_KEYS must be non-empty');
     assert.ok(Array.isArray(MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS), 'MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS must be exported as an array');
     assert.ok(MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS.length > 0, 'MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS must be non-empty');
+    assert.ok(Array.isArray(MCP_DOWNSTREAM_TELEMETRY_KEYS), 'MCP_DOWNSTREAM_TELEMETRY_KEYS must be exported as an array');
+    assert.ok(MCP_DOWNSTREAM_TELEMETRY_KEYS.length > 0, 'MCP_DOWNSTREAM_TELEMETRY_KEYS must be non-empty');
   });
 
   it('declared allowlists exclude every request/response body key', () => {
@@ -134,6 +138,10 @@ describe('api/mcp.ts — telemetry redaction (closed-key allowlist)', () => {
       assert.ok(
         !MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS.includes(forbidden),
         `MCP_RATE_LIMIT_HIT_TELEMETRY_KEYS must not include "${forbidden}" — request/response bodies are never logged`,
+      );
+      assert.ok(
+        !MCP_DOWNSTREAM_TELEMETRY_KEYS.includes(forbidden),
+        `MCP_DOWNSTREAM_TELEMETRY_KEYS must not include "${forbidden}" — request/response bodies are never logged`,
       );
     }
   });
@@ -173,9 +181,16 @@ describe('api/mcp.ts — telemetry redaction (closed-key allowlist)', () => {
     // The catch-block emit site in dispatchToolsCall adds `error_kind` —
     // a key the success path never sends. Without this case the allowlist
     // promise has a hole on the error branch (greptile review on PR
-    // #3849). Force the cache-tool fetch to throw so dispatchToolsCall's
-    // outer catch fires and emits the ok:false telemetry line.
-    globalThis.fetch = async () => { throw new TypeError('fetch failed'); };
+    // #3849). Force the cache tool to throw so dispatchToolsCall's outer
+    // catch fires and emits the ok:false telemetry line. Every Redis GET
+    // reads back absent, so the throw is `cache_all_null` (a server_error);
+    // a GET that itself FAILS is a source outage, a different error kind.
+    globalThis.fetch = async (url) => {
+      if (String(url).includes('/get/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      throw new TypeError('fetch failed');
+    };
 
     const origErr = console.error;
     console.error = () => {}; // swallow the captureSilentError stderr noise

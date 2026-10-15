@@ -7,6 +7,7 @@ import {
   makeProDeps,
   proReq,
 } from './helpers/mcp-pro-deps.mjs';
+import { documentedOutputSchema } from './helpers/mcp-output-schema.mjs';
 
 const originalFetch = globalThis.fetch;
 const originalEnv = { ...process.env };
@@ -23,7 +24,7 @@ const canonicalResponse = {
     automationFit: { level: 'high', score: 91, classificationVersion: 'keyword-v1', matchReasons: ['cloud', 'cybersecurity'], evidence: ['cloud security platform'] },
   }],
   nextCursor: '10', fetchedAt: '2026-07-14T12:00:00.000Z', dataAvailable: true,
-  availability: 'partial', sourceStatuses: [{ source: 'sam', state: 'ok', recordCount: 1, fetchedAt: '2026-07-14T12:00:00.000Z', lastSuccessfulAt: '2026-07-14T12:00:00.000Z', stale: false }],
+  availability: 'partial', sourceStatuses: [{ source: 'sam', state: 'ok', recordCount: 1, fetchedAt: '2026-07-14T12:00:00.000Z', lastSuccessfulAt: '2026-07-14T12:00:00.000Z', stale: false, paced: true }],
   total: 22, appliedFilters: ['country', 'min_automation_score'], countryCoverage: 'unknown',
 };
 
@@ -68,7 +69,7 @@ describe('get_procurement_opportunities MCP tool', () => {
     assert.ok(tool, 'tool must be discoverable through tools/list');
     assert.equal(tool.inputSchema.properties.page_size.maximum, 25);
     assert.equal(tool.inputSchema.properties.min_automation_score.maximum, undefined, 'the canonical route owns the score upper-bound clamp');
-    assert.match(tool.outputSchema.properties.nextCursor.description, /empty string means no further pages/i);
+    assert.match(documentedOutputSchema(tool).properties.nextCursor.description, /empty string means no further pages/i);
 
     const { response, body } = await callTool({
       country: 'US', countries: ['CA', 'GB'], source: 'sam', query: 'cloud security', buyer: 'Example agency',
@@ -98,6 +99,7 @@ describe('get_procurement_opportunities MCP tool', () => {
     assert.equal(result.countryCoverage, 'unknown', 'unknown coverage is never a confirmed zero-result');
     assert.equal(result.availability, 'partial');
     assert.deepEqual(result.sourceStatuses, canonicalResponse.sourceStatuses);
+    assert.equal(result.sourceStatuses[0].paced, true, 'paced source status survives the canonical route proxy');
     assert.deepEqual(result.opportunities[0], {
       id: 'sam:abc-123', source: 'sam', officialUrl: 'https://sam.gov/opp/abc-123', countryCode: 'US', region: 'North America',
       title: 'Cloud security platform', buyer: 'Example agency', publishedAt: '2026-07-14T00:00:00.000Z', deadline: '2026-08-01T00:00:00.000Z',
@@ -122,12 +124,18 @@ describe('get_procurement_opportunities MCP tool', () => {
     assert.equal(requestUrl.searchParams.get('min_automation_score'), '1');
   });
 
-  it('uses the same Pro entitlement gate as the canonical route before fetching data', async () => {
+  it('is Pro-only — the free allowance does not cover downstream-fetching tools (#6716)', async () => {
+    // This tool fetches through server/gateway.ts, which re-checks
+    // checkProMcpAccess and refuses a free entitlement. The MCP call site
+    // therefore refuses it up front rather than spending an allowance slot on a
+    // call that can only end in a gateway 401.
     const { response, body } = await callTool({}, {
       getEntitlements: async () => ({ planKey: 'free', features: { tier: 0, mcpAccess: false }, validUntil: Date.now() + 86_400_000 }),
     });
-    assert.equal(response.status, 401);
-    assert.equal(body.error.code, -32001);
-    assert.equal(requests.length, 0, 'failed entitlement must not reach the canonical route');
+    assert.equal(response.status, 403);
+    assert.equal(body.error.code, -32002);
+    assert.equal(body.error.data?.reason, 'upgrade-required');
+    assert.ok(body.error.data?.upgradeUrl);
+    assert.equal(requests.length, 0, 'must not reach the canonical route');
   });
 });
