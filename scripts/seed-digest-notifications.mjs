@@ -39,6 +39,7 @@ const {
 } = require('./lib/notification-webhook-signing.cjs');
 const { buildTeamsDigestPayload, sendTeamsPayload } = require('./lib/notification-teams.cjs');
 const { callLLM } = require('./lib/llm-chain.cjs');
+const { createAiRoutingPolicyResolver, withAiRoutingPolicy } = require('./lib/ai-routing-policy.cjs');
 const { flushPendingLlmEvents } = require('./lib/llm-telemetry.cjs');
 const { fetchUserPreferences, extractUserContext, formatUserProfile } = require('./lib/user-context.cjs');
 const { fetchFollowedCountries } = require('./lib/followed-countries-fetch.cjs');
@@ -70,6 +71,7 @@ import {
 } from './lib/brief-compose.mjs';
 import {
   applyDigestScoreFloor,
+  createDigestMemo,
   carouselUrlsFrom,
   digestWindowStartMs,
   getDigestScoreMin,
@@ -340,6 +342,11 @@ async function callAnalystWhyMatters(story) {
     return null;
   }
 }
+
+// Personalised digest prose carries the user's profile and greeting, so it
+// honours that user's AI routing policy (docs/internal/ai-routing-policy.md).
+// Story-level calls (why-matters, descriptions) use shared story content only.
+const resolveAiRoutingPolicy = createAiRoutingPolicyResolver({ siteUrl: CONVEX_SITE_URL, secret: RELAY_SECRET });
 
 // Dependencies injected into brief-llm.mjs. Defined near the top so
 // the upstashRest helper below is in scope when this closure runs
@@ -1554,33 +1561,12 @@ async function composeBriefsForRun(rules, nowMs) {
     console.warn('[digest] brief: insights read failed, using zeroed stats:', err.message);
   }
 
-  // Memoize buildDigest by (variant, lang, sensitivity, windowStart).
-  // Many users share a variant/lang, so this saves ZRANGE + HGETALL
-  // round-trips across the per-user loop. Scoped to this cron run —
-  // no cross-run memoization needed (Redis is authoritative).
-  //
-  // Sensitivity is part of the key because buildDigest filters by
-  // rule.sensitivity BEFORE dedup — without it, a stricter user
-  // inherits a looser populator's pool (the earlier populator "wins"
-  // and decides which severity tiers enter the pool, so stricter
-  // users get a pool that contains severities they never wanted).
-  //
-  // windowStart is derived per-candidate from `lastSentAt`, matching
-  // the send loop's formula exactly (digestWindowStartMs). Without
-  // this, the canonical brief lead would be synthesized from a fixed
-  // 24h pool while the email/Slack body ships the actual cadence's
-  // window (7d for weekly, 12h for twice_daily) — a different flavor
-  // of the cross-surface divergence the canonical-brain refactor is
-  // designed to eliminate.
-  const digestCache = new Map();
-  async function digestFor(cand) {
-    const windowStart = digestWindowStartMs(cand.lastSentAt, nowMs, DIGEST_LOOKBACK_MS);
-    const key = `${cand.rule.variant ?? 'full'}:${cand.rule.lang ?? 'en'}:${cand.rule.sensitivity ?? 'high'}:${windowStart}`;
-    if (digestCache.has(key)) return digestCache.get(key);
-    const stories = await buildDigest(cand.rule, windowStart);
-    digestCache.set(key, stories ?? []);
-    return stories ?? [];
-  }
+  // Memoize buildDigest by (variant, lang, sensitivity, windowStart) for
+  // this cron run. The key and its sensitivity default live in
+  // scripts/lib/digest-orchestration-helpers.mjs (createDigestMemo) so
+  // tests/digest-memo-sensitivity.test.mjs can prove a stricter user never
+  // inherits a looser populator's pool, rather than grepping this file.
+  const digestFor = createDigestMemo(buildDigest, { nowMs, lookbackMs: DIGEST_LOOKBACK_MS });
 
   // Pre-annotate every eligible rule with its lastSentAt + isDue
   // status. The compose flow uses this to prefer a "due-this-tick"
@@ -1747,7 +1733,7 @@ async function composeAndStoreBriefForUser(userId, annotated, insightsNumbers, d
         synthesisStories,
         sensitivity,
         ctx,
-        briefLlmDeps,
+        withAiRoutingPolicy(briefLlmDeps, await resolveAiRoutingPolicy(userId)),
         (level, kind, err) => {
           if (kind === 'throw') {
             console.warn(
@@ -2091,7 +2077,15 @@ async function main() {
         status: 'error',
         errorReason: `fetch_rules_http_${res.status}`,
       });
-      return;
+      // Not a `return`: a run that never obtained its rules delivered nothing,
+      // and resolving main() here let the process exit 0 — Railway recorded
+      // the 2026-09-16 relay-auth outage (#8208) as a green cron until the
+      // /api/health staleness window elapsed (#8215). Exit non-zero, the same
+      // way the brief-compose gate at the end of main() does, so a 401/5xx
+      // from the relay shows red immediately. The seed-meta write above stays
+      // first so health still sees the reason.
+      await flushPendingLlmEvents();
+      process.exit(1);
     }
     rules = await res.json();
   } catch (err) {
@@ -2101,10 +2095,24 @@ async function main() {
       status: 'error',
       errorReason: `fetch_rules_failed:${err.message}`,
     });
-    return;
+    // Same contract as the non-ok branch: a network failure or timeout
+    // reaching the relay is a failed run, not a quiet one (#8215).
+    await flushPendingLlmEvents();
+    process.exit(1);
   }
 
-  if (!Array.isArray(rules) || rules.length === 0) {
+  if (!Array.isArray(rules)) {
+    console.error('[digest] Malformed rules response: expected an array');
+    await writeDigestLastRunMeta({
+      startedAtMs: nowMs,
+      status: 'error',
+      errorReason: 'fetch_rules_malformed',
+    });
+    await flushPendingLlmEvents();
+    process.exit(1);
+  }
+
+  if (rules.length === 0) {
     console.log('[digest] No digest rules found — nothing to do');
     await writeDigestLastRunMeta({ startedAtMs: nowMs, sentCount: 0 });
     return;
