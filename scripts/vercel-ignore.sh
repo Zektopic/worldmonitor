@@ -16,7 +16,7 @@ if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] && [ -n "$VERCEL_GIT_PREVIOUS_SHA" ]; t
       'src/' 'api/' 'server/' 'shared/' 'public/' 'blog-site/' 'pro-test/' 'proto/' 'convex/' \
       'CHANGELOG.md' 'docs/docs.json' 'docs/snapshots/' \
       'scripts/shared/prediction-country-language.json' \
-      'scripts/build-crawlable-corpus.mjs' 'scripts/unranked-country-inventory.mjs' 'scripts/build-use-cases.mjs' 'scripts/build-accuracy-page.mjs' 'scripts/build-research-reports.mjs' 'scripts/build-comparison-pages.mjs' 'scripts/comparison-page-narratives.mjs' 'scripts/comparison-shortlist.mjs' \
+      'scripts/build-crawlable-corpus.mjs' 'scripts/unranked-country-inventory.mjs' 'scripts/build-use-cases.mjs' 'scripts/data/use-case-workflows.mjs' 'scripts/build-accuracy-page.mjs' 'scripts/build-situation-page.mjs' 'scripts/situation-page/' 'scripts/slugify.mjs' 'scripts/build-research-reports.mjs' 'scripts/build-comparison-pages.mjs' 'scripts/comparison-page-narratives.mjs' 'scripts/comparison-shortlist.mjs' \
       'scripts/build-sitemap.mjs' 'scripts/discover-content-corpus-pages.mjs' \
       'scripts/crawlable-live-tools.mjs' 'scripts/crawlable-sources-page.mjs' \
       'scripts/country-related-links.mjs' 'scripts/data/country-centroids.json' 'scripts/related-reading.mjs' \
@@ -62,6 +62,13 @@ fi
 # deployed commit.
 COMPARE_SHA=$(git merge-base HEAD origin/main 2>/dev/null)
 if [ -z "$COMPARE_SHA" ] && [ -n "$VERCEL_GIT_PREVIOUS_SHA" ]; then
+  # Vercel's preview clone has no origin/main, so this fallback is the usual
+  # path. PREVIOUS_SHA equals HEAD on a redeploy that picks up a changed
+  # preview env var; the empty diff would cancel it, as on main (#8216).
+  if [ "$VERCEL_GIT_PREVIOUS_SHA" = "$(git rev-parse HEAD 2>/dev/null)" ]; then
+    echo "Building: redeploy of the last deployed commit"
+    exit 1
+  fi
   git cat-file -e "$VERCEL_GIT_PREVIOUS_SHA" 2>/dev/null && COMPARE_SHA="$VERCEL_GIT_PREVIOUS_SHA"
 fi
 [ -z "$COMPARE_SHA" ] && exit 1
@@ -83,8 +90,11 @@ git diff --name-only "$COMPARE_SHA" HEAD -- \
   'scripts/shared/prediction-country-language.json' \
   'scripts/build-crawlable-corpus.mjs' \
   'scripts/unranked-country-inventory.mjs' \
-  'scripts/build-use-cases.mjs' \
+  'scripts/build-use-cases.mjs' 'scripts/data/use-case-workflows.mjs' \
   'scripts/build-accuracy-page.mjs' \
+  'scripts/build-situation-page.mjs' \
+  'scripts/situation-page/' \
+  'scripts/slugify.mjs' \
   'scripts/build-comparison-pages.mjs' \
   'scripts/comparison-page-narratives.mjs' \
   'scripts/comparison-shortlist.mjs' \

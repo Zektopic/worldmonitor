@@ -94,7 +94,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-          cache: 'npm'
       - uses: ./.github/actions/install-root-deps
       - run: npm run lint:unicode
       - run: npm run lint
@@ -105,6 +104,7 @@ jobs:
       - run: npm run sync:tui-catalog:check
       - run: npm run lint:rate-limit-policies
       - run: npm run lint:premium-fetch
+      - run: npm run lint:outbound-deadlines
       - run: npm run lint:safe-local-storage
       - run: npm run lint:overlay-reload-policy
       - run: npm run security:vite-env-secrets
@@ -126,7 +126,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-          cache: 'npm'
       - uses: ./.github/actions/install-root-deps
       - run: npm run lint:md
 

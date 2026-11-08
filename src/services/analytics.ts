@@ -13,6 +13,7 @@ import { subscribeAuthState, type AuthSession } from './auth-state';
 import { onSubscriptionChange, type SubscriptionInfo } from './billing';
 import { getClerkUserCreatedAt } from './clerk';
 import { DODO_PRODUCT_IDS } from '@/config/product-ids.generated';
+import type { McpAgentClientId } from '@/config/mcp-agent-clients';
 import { SITE_VARIANT, isSiteVariant } from '@/config/variant';
 import { isAgentPanelViewSuppressed } from './agent-analytics-privacy';
 import type { ActivationEventName, ActivationStepId } from './pro-activation-state';
@@ -165,6 +166,11 @@ const EVENTS = {
   'webcam-fullscreen': true,
   // Downloads / banners
   'download-clicked': true,
+  'pwa-install-entry-shown': true,
+  'pwa-install-clicked': true,
+  'pwa-install-outcome': true,
+  'pwa-installed': true,
+  'pwa-ios-sheet-opened': true,
   'critical-banner': true,
   // AI widget
   'widget-ai-open': true,
@@ -199,6 +205,9 @@ const EVENTS = {
   'sign-up-resume-dismissed': true,
   'sign-out': true,
   'gate-hit': true,
+  // Free-user Pro strip call to action. Views are gate-hit feature=pro-banner;
+  // clicks / views is the strip's click-through. `state` is upgrade | lapsed.
+  'pro-banner-click': true,
   // Conversion funnel (#4931) — pageview → gate-hit → checkout-start →
   // checkout-success is the end-to-end funnel; the /pro page fires its own
   // checkout-start via the raw tracker (separate build, same event name).
@@ -209,6 +218,9 @@ const EVENTS = {
   // API outcome telemetry — closed-vocabulary key lifecycle actions only;
   // never include key names, ids, prompts, or request/user data.
   'api-action': true,
+  // Settings → AI Agents connect clicks. `client` is the closed catalog id in
+  // src/config/mcp-agent-clients.ts, `method` is link | copy.
+  'agent-connect': true,
   // Premium entitlement health — a client that believes it is Pro received a
   // server-side denial. This is trend telemetry, never an authorization signal.
   'entitlement-desync': true,
@@ -258,6 +270,11 @@ const EVENTS = {
   'pro-preview-cta': true,
   'pro-preview-dismissed': true,
   'mission-returned-after-purchase': true,
+  // About-you questionnaire (plan 2026-11-02-001). Carries the surface, the
+  // card mode, and the question id, never the answer or the free text.
+  'about-you-shown': true,
+  'about-you-answered': true,
+  'about-you-skipped': true,
 } as const;
 
 export type UmamiEvent = keyof typeof EVENTS;
@@ -334,7 +351,11 @@ function handleCollectorOutcome(outcome: CollectorOutcome): void {
   if (outcome.eventName === 'checkout-start' && isReplayedCheckoutStart(outcome.requestBody)) {
     noteProFunnelReplayDelivered();
   }
-  if (outcome.eventName === 'checkout-start' || outcome.eventName === 'checkout-failed') {
+  if (
+    outcome.eventName === 'checkout-start'
+    || outcome.eventName === 'checkout-failed'
+    || outcome.eventName === 'pro-banner-click'
+  ) {
     forgetPendingConversion(outcome.eventName);
   }
 }
@@ -992,7 +1013,7 @@ const CONVERSION_PENDING_KEY = 'wm-conversion-pending';
 const CONVERSION_PENDING_LIMIT = 5;
 
 type PendingConversion = {
-  event: 'checkout-start' | 'checkout-failed';
+  event: 'checkout-start' | 'checkout-failed' | 'pro-banner-click';
   data: Record<string, unknown>;
 };
 
@@ -1010,7 +1031,7 @@ function readPendingConversions(): PendingConversion[] {
     return items.filter((item): item is PendingConversion => {
       if (!item || typeof item !== 'object') return false;
       const { event, data } = item as { event?: unknown; data?: unknown };
-      return (event === 'checkout-start' || event === 'checkout-failed')
+      return (event === 'checkout-start' || event === 'checkout-failed' || event === 'pro-banner-click')
         && Boolean(data) && typeof data === 'object';
     }).slice(0, CONVERSION_PENDING_LIMIT);
   } catch {
@@ -1059,6 +1080,9 @@ function sanitizePendingConversionData(
   event: PendingConversion['event'],
   data: Record<string, unknown>,
 ): Record<string, unknown> {
+  if (event === 'pro-banner-click') {
+    return { state: data.state === 'lapsed' ? 'lapsed' : 'upgrade' };
+  }
   if (event === 'checkout-failed') {
     const status = data.status;
     return {
@@ -1334,6 +1358,17 @@ export function replayPendingProFunnelEvents(): void {
 const CHECKOUT_FAILED_STATUSES = new Set(['failed', 'declined', 'cancelled', 'canceled']);
 
 /** Fired when a checkout return reconciles as failed/declined/cancelled. */
+/**
+ * A click on the free-user Pro strip. It navigates straight to /pro, often
+ * before the deferred tracker loads, so a durable copy replays on the next
+ * dashboard boot until the collector confirms the write.
+ */
+export function trackProBannerClick(state: 'upgrade' | 'lapsed'): void {
+  const data = { state };
+  rememberPendingConversion('pro-banner-click', data);
+  track('pro-banner-click', data);
+}
+
 export function trackCheckoutFailed(rawStatus: string): void {
   const status = CHECKOUT_FAILED_STATUSES.has(rawStatus) ? rawStatus : 'other';
   rememberPendingConversion('checkout-failed', { status });
@@ -1347,6 +1382,15 @@ export type ApiActionName = (typeof API_ACTIONS)[number];
 export function trackApiAction(action: ApiActionName): void {
   if (!API_ACTIONS.includes(action)) return;
   track('api-action', { action });
+}
+
+/**
+ * Settings → AI Agents: a user started connecting an agent. `client` is a
+ * closed catalog id; the caller resolves it against the catalog so this chunk
+ * never carries the catalog itself (analytics bundle budget).
+ */
+export function trackAgentConnect(client: McpAgentClientId, method: 'link' | 'copy'): void {
+  track('agent-connect', { client, method });
 }
 
 // ---------------------------------------------------------------------------

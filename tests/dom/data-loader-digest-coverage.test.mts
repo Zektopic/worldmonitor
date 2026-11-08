@@ -8,6 +8,12 @@ const mocks = vi.hoisted(() => ({
   checkBatchForBreakingAlerts: vi.fn(),
   clusterNews: vi.fn(),
   analyzeCorrelations: vi.fn(),
+  enqueueSentryCall: vi.fn(),
+}));
+
+vi.mock('@/bootstrap/sentry-defer', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/bootstrap/sentry-defer')>(),
+  enqueueSentryCall: mocks.enqueueSentryCall,
 }));
 
 vi.mock('@/services/breaking-news-alerts', async (importOriginal) => ({
@@ -23,6 +29,7 @@ vi.mock('@/services/analysis-worker', () => ({
 }));
 
 await import('@/app/data-loader');
+const { INTEL_SOURCES } = await import('@/config');
 
 interface SelectedNewsDigest {
   digest: ListFeedDigestResponse;
@@ -40,19 +47,24 @@ interface DigestLoaderInternals {
   loadPersistedDigest(key?: string): Promise<ListFeedDigestResponse | null>;
   persistDigest(key: string, data: ListFeedDigestResponse): void;
   tryFetchDigest(): Promise<SelectedNewsDigest | null>;
+  fetchEditionDigest(edition: string, language: string): Promise<ListFeedDigestResponse | null>;
   beginNewsLoad(): number;
   commitNewsFreshness(generation: number, servedStale: boolean): boolean;
   canNotifyForCommittedNews(generation: number, servedStale: boolean): boolean;
   runCorrelationAnalysis(): Promise<void>;
   resolveEnabledNewsCategories(): Array<{ key: string; feeds: Array<{ name: string; url: string }>; isCustom: boolean }>;
-  loadIntelNews(): Promise<unknown[]>;
+  loadIntelNews(
+    digest?: SelectedNewsDigest | null,
+    options?: { recordBaselineSample: boolean },
+    generation?: number,
+  ): Promise<unknown[]>;
   clusterNewsForGeneration(): Promise<{ clusters: ClusteredEvent[] }>;
   loadNewsCategory(
     category: string,
     feeds: Array<{ name: string }>,
     digest: SelectedNewsDigest | null,
     isCustom: boolean,
-    options: { allowDigestPendingFallback: boolean; recordBaselineSample: boolean },
+    options: { recordBaselineSample: boolean },
     generation: number,
   ): Promise<unknown[]>;
 }
@@ -90,6 +102,8 @@ function digest(state: string, itemCount = 2): ListFeedDigestResponse {
       servedStale: state === 'stale',
       staleAgeSeconds: state === 'stale' ? 1800 : 0,
       staleReason: state === 'stale' ? 'build-error' : '',
+      itemsConsidered: itemCount,
+      publishersConsidered: 1,
     },
   };
 }
@@ -103,6 +117,7 @@ async function makeLoader() {
     newsPanels: {},
     panels: {
       politics: { setSourceCoverage: vi.fn(), setRefreshDegraded: vi.fn() },
+      intel: { setSourceCoverage: vi.fn(), setRefreshDegraded: vi.fn() },
     },
     newsByCategory: {},
     currentTimeRange: 'all',
@@ -121,7 +136,8 @@ async function makeLoader() {
   const internal = loader as unknown as DigestLoaderInternals;
   internal.persistDigest = vi.fn();
   internal.loadPersistedDigest = vi.fn().mockResolvedValue(null);
-  return { loader, internal, updateDigestCoverage };
+  const panels = ctx.panels as unknown as Record<'politics' | 'intel', { setRefreshDegraded: ReturnType<typeof vi.fn> }>;
+  return { loader, internal, updateDigestCoverage, panels };
 }
 
 describe('digest coverage follows the selected browser response', () => {
@@ -129,6 +145,7 @@ describe('digest coverage follows the selected browser response', () => {
     mocks.checkBatchForBreakingAlerts.mockReset();
     mocks.clusterNews.mockReset();
     mocks.analyzeCorrelations.mockReset();
+    mocks.enqueueSentryCall.mockReset();
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -248,7 +265,211 @@ describe('digest coverage follows the selected browser response', () => {
     expect(updateDigestCoverage).toHaveBeenCalledWith(expect.objectContaining({
       state: 'stale',
       itemsServed: 3,
+      // The server never failed: the browser's request did.
+      staleCause: 'device',
     }));
+  });
+
+  describe('the browser fallback reports to Sentry', () => {
+    function captured(): Array<{ message: string; ctx: { level: string; tags: Record<string, string>; fingerprint: string[] } }> {
+      return mocks.enqueueSentryCall.mock.calls.map(([fn]) => {
+        const captureMessage = vi.fn();
+        (fn as (s: unknown) => void)({ captureMessage });
+        const [message, ctx] = captureMessage.mock.calls[0]!;
+        return { message, ctx };
+      });
+    }
+
+    it('reports a timed-out request with its failure kind and fallback', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      internal.lastGoodDigest = { key: 'digest:current', data: digest('complete', 3) };
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(new DOMException('signal timed out', 'TimeoutError'));
+
+      await internal.tryFetchDigest();
+
+      const events = captured();
+      expect(events).toHaveLength(1);
+      expect(events[0]!.message).toBe('News digest fetch failed');
+      expect(events[0]!.ctx.level).toBe('warning');
+      expect(events[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'timeout', 'digest.fallback': 'retained' });
+      expect(events[0]!.ctx.fingerprint).toEqual(['news-digest-fetch', 'timeout']);
+    });
+
+    it('waits as long as the server is allowed to take (Sentry WORLDMONITOR-1D4)', async () => {
+      // The server answers a cold rebuild by RESPONSE_DEADLINE_MS. A shorter
+      // client deadline throws away digests the server was still delivering:
+      // in production, 8.3-8.7 s server responses landed just after the
+      // browser's 8 s deadline, and users with no saved copy saw empty panels.
+      const { __testing__ } = await import('../../server/worldmonitor/news/v1/list-feed-digest');
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      const timeout = vi.spyOn(AbortSignal, 'timeout');
+      vi.mocked(globalThis.fetch).mockImplementation(async () => new Response(JSON.stringify(digest('complete', 3))));
+
+      // Each method mints its own deadline before publicRpcFetch adds its 30 s
+      // transport cap, so the FIRST timeout of each request is the caller's.
+      // Checking per method keeps the transport cap from standing in for a
+      // deadline a method stopped setting.
+      const callerDeadline = async (request: () => Promise<unknown>): Promise<number[]> => {
+        timeout.mockClear();
+        expect(await request()).not.toBeNull();
+        return timeout.mock.calls.map(([ms]) => ms);
+      };
+      let home: number[];
+      let edition: number[];
+      try {
+        home = await callerDeadline(() => internal.tryFetchDigest());
+        edition = await callerDeadline(() => internal.fetchEditionDigest('tech', 'en'));
+      } finally {
+        timeout.mockRestore();
+      }
+
+      for (const calls of [home, edition]) {
+        expect(calls).toHaveLength(2);
+        // The request aborts at the shorter of the two, so both must outlast the server.
+        expect(calls[0]).toBeGreaterThan(__testing__.RESPONSE_DEADLINE_MS);
+        expect(calls[1]).toBeGreaterThan(__testing__.RESPONSE_DEADLINE_MS);
+      }
+    });
+
+    it('counts a WebKit deadline abort as a timeout, not "other" (Sentry WORLDMONITOR-1D5)', async () => {
+      // Safari and every iOS browser reject the fetch with `AbortError: Fetch is
+      // aborted` when AbortSignal.timeout fires, never `TimeoutError`, so the
+      // name alone filed one condition under two Sentry issues.
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      internal.lastGoodDigest = { key: 'digest:current', data: digest('complete', 3) };
+      const expired = AbortSignal.abort(new DOMException('signal timed out', 'TimeoutError'));
+      const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(expired);
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(new DOMException('Fetch is aborted', 'AbortError'));
+
+      try {
+        await internal.tryFetchDigest();
+      } finally {
+        timeout.mockRestore();
+      }
+
+      const events = captured();
+      expect(events).toHaveLength(1);
+      expect(events[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'timeout', 'digest.error': 'AbortError' });
+      expect(events[0]!.ctx.fingerprint).toEqual(['news-digest-fetch', 'timeout']);
+    });
+
+    it('keeps an abort the deadline did not cause out of the timeout bucket, and names it', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(new DOMException('The operation was aborted.', 'AbortError'));
+
+      await internal.tryFetchDigest();
+
+      expect(captured()[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'other', 'digest.error': 'AbortError' });
+    });
+
+    it('judges the deadline when the request failed, not after the fallback read', async () => {
+      // An unrelated abort fails the request early; the saved-digest read then
+      // runs long enough for the deadline to fire. That is still not a timeout.
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      const deadline = new AbortController();
+      const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+      internal.loadPersistedDigest = async () => {
+        deadline.abort(new DOMException('signal timed out', 'TimeoutError'));
+        return null;
+      };
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(new DOMException('The operation was aborted.', 'AbortError'));
+
+      try {
+        await internal.tryFetchDigest();
+      } finally {
+        timeout.mockRestore();
+      }
+
+      expect(captured()[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'other', 'digest.error': 'AbortError' });
+    });
+
+    it('names the error behind an "other" failure so the bucket can be read', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response('{"truncated', { status: 200 }));
+
+      await internal.tryFetchDigest();
+
+      expect(captured()[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'other', 'digest.error': 'SyntaxError' });
+    });
+
+    it('classifies an HTTP 5xx and reports when nothing could be shown', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response('', { status: 503 }));
+
+      await internal.tryFetchDigest();
+
+      expect(captured()[0]!.ctx.tags).toMatchObject({ 'digest.failure': 'http-5xx', 'digest.fallback': 'none' });
+    });
+
+    it('reports each failure kind once per page, not on every refresh', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      internal.lastGoodDigest = { key: 'digest:current', data: digest('complete', 3) };
+      vi.mocked(globalThis.fetch)
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      await internal.tryFetchDigest();
+      await internal.tryFetchDigest();
+
+      expect(captured()).toHaveLength(1);
+      expect(captured()[0]!.ctx.tags['digest.failure']).toBe('network');
+    });
+
+    it('stays quiet while the browser reports itself offline', async () => {
+      const { internal } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      await internal.tryFetchDigest();
+
+      online.mockRestore();
+      expect(mocks.enqueueSentryCall).not.toHaveBeenCalled();
+    });
+  });
+
+  it('attributes a server replay to the server and carries the considered pool', async () => {
+    const { internal, updateDigestCoverage } = await makeLoader();
+    const replay = digest('stale', 3);
+    replay.coverage = { ...replay.coverage!, itemsConsidered: 40, publishersConsidered: 12 };
+    internal.digestCacheKey = () => 'digest:current';
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(replay), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+
+    await internal.tryFetchDigest();
+
+    expect(updateDigestCoverage).toHaveBeenCalledWith(expect.objectContaining({
+      state: 'stale',
+      staleCause: 'server',
+      staleReason: 'build-error',
+      contentAgeSeconds: 1800,
+      itemsConsidered: 40,
+      publishersConsidered: 12,
+    }));
+  });
+
+  it('dates a device copy from its content generatedAt', async () => {
+    const { internal, updateDigestCoverage } = await makeLoader();
+    const retained = digest('complete', 3);
+    retained.generatedAt = new Date(Date.now() - 600_000).toISOString();
+    internal.digestCacheKey = () => 'digest:current';
+    internal.lastGoodDigest = { key: 'digest:current', data: retained };
+    vi.mocked(globalThis.fetch).mockRejectedValueOnce(new Error('timeout'));
+
+    await internal.tryFetchDigest();
+
+    const summary = updateDigestCoverage.mock.calls[0]![0] as { contentAgeSeconds: number };
+    expect(summary.contentAgeSeconds).toBeGreaterThanOrEqual(599);
+    expect(summary.contentAgeSeconds).toBeLessThan(620);
   });
 
   it('does not report a fresh digest discarded by an in-flight language switch', async () => {
@@ -278,11 +499,14 @@ describe('digest coverage follows the selected browser response', () => {
     expect(updateDigestCoverage).toHaveBeenCalledWith(expect.objectContaining({
       state: 'stale',
       itemsServed: 1,
+      // The service answered; the answer was for the previous language.
+      staleCause: 'switching',
     }));
     expect(updateDigestCoverage).not.toHaveBeenCalledWith(expect.objectContaining({
       state: 'complete',
       itemsServed: 4,
     }));
+    expect(mocks.enqueueSentryCall).not.toHaveBeenCalled();
   });
 
   it('a late stale load cannot replace or alert over a newer fresh commit (#7084)', async () => {
@@ -415,7 +639,7 @@ describe('digest coverage follows the selected browser response', () => {
         [{ name: 'source-0' }],
         selected,
         false,
-        { allowDigestPendingFallback: false, recordBaselineSample: false },
+        { recordBaselineSample: false },
         generation,
       );
 
@@ -437,5 +661,78 @@ describe('digest coverage follows the selected browser response', () => {
     expect(served?.digest.coverage?.state).toBe('stale');
     expect(served?.servedStale).toBe(true);
     expect(internal.persistDigest).not.toHaveBeenCalled();
+  });
+
+  describe('the LIVE/CACHED badge follows the selected digest', () => {
+    function respond(body: ListFeedDigestResponse): void {
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+    }
+
+    function withIntel(body: ListFeedDigestResponse): ListFeedDigestResponse {
+      const items = body.categories.politics!.items.map(item => ({ ...item, source: INTEL_SOURCES[0]!.name }));
+      return { ...body, categories: { ...body.categories, intel: { items } } };
+    }
+
+    async function selectHomeDigest(kind: 'fresh' | 'server-stale' | 'retained' | 'persisted') {
+      const { internal, panels } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+      if (kind === 'fresh') respond(withIntel(digest('complete')));
+      if (kind === 'server-stale') respond(withIntel(digest('stale')));
+      if (kind === 'retained') {
+        internal.lastGoodDigest = { key: 'digest:current', data: withIntel(digest('complete')) };
+        vi.mocked(globalThis.fetch).mockRejectedValueOnce(new Error('network down'));
+      }
+      if (kind === 'persisted') {
+        internal.loadPersistedDigest = vi.fn().mockResolvedValue(withIntel(digest('complete')));
+        vi.mocked(globalThis.fetch).mockRejectedValueOnce(new Error('network down'));
+      }
+      const selected = await internal.tryFetchDigest();
+      return { internal, panels, selected, generation: internal.beginNewsLoad() };
+    }
+
+    it.each([
+      ['fresh', false],
+      ['server-stale', true],
+      ['retained', true],
+      ['persisted', true],
+    ] as const)('a %s home digest marks the category panel cached=%s', async (kind, cached) => {
+      const { internal, panels, selected, generation } = await selectHomeDigest(kind);
+
+      await internal.loadNewsCategory('politics', [{ name: 'source-0' }], selected, false, { recordBaselineSample: false }, generation);
+
+      expect(panels.politics.setRefreshDegraded).toHaveBeenLastCalledWith(cached);
+    });
+
+    it.each([
+      ['fresh', false],
+      ['server-stale', true],
+      ['retained', true],
+      ['persisted', true],
+    ] as const)('a %s home digest marks the intel panel cached=%s', async (kind, cached) => {
+      const { internal, panels, selected, generation } = await selectHomeDigest(kind);
+
+      const intel = await internal.loadIntelNews(selected, { recordBaselineSample: false }, generation);
+
+      expect(intel).toHaveLength(2);
+      expect(panels.intel.setRefreshDegraded).toHaveBeenLastCalledWith(cached);
+    });
+
+    it('returns a cached panel to LIVE once a fresh digest arrives', async () => {
+      const { internal, panels } = await makeLoader();
+      internal.digestCacheKey = () => 'digest:current';
+
+      respond(digest('stale'));
+      const stale = await internal.tryFetchDigest();
+      await internal.loadNewsCategory('politics', [{ name: 'source-0' }], stale, false, { recordBaselineSample: false }, internal.beginNewsLoad());
+      expect(panels.politics.setRefreshDegraded).toHaveBeenLastCalledWith(true);
+
+      respond(digest('complete'));
+      const fresh = await internal.tryFetchDigest();
+      await internal.loadNewsCategory('politics', [{ name: 'source-0' }], fresh, false, { recordBaselineSample: false }, internal.beginNewsLoad());
+      expect(panels.politics.setRefreshDegraded).toHaveBeenLastCalledWith(false);
+    });
   });
 });

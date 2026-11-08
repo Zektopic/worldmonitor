@@ -574,7 +574,7 @@ export function computeMonthlyAverages(history, startMonth, endMonth) {
     byMonth.get(month).push(row.total);
   }
   return [...byMonth.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a.localeCompare(b, 'en-US'))
     .map(([month, values]) => ({
       month,
       days: values.length,
@@ -838,6 +838,11 @@ ${provenanceRows}
         parts.push(`        <p>Cite the report as:</p>
         <blockquote><p>${escapeHtml(`${report.author.name}, “${report.title}”, version ${report.version}, published ${report.datePublished}. ${canonical} — underlying transit data: IMF PortWatch (portwatch.imf.org).`)}</p></blockquote>
         <p>The canonical URL is stable, editions are append-only, and corrections bump the version and modified date rather than silently rewriting figures.</p>`);
+        break;
+      case 'current-pointer':
+        // AI answers quote the direct answer on its own, so its age and the
+        // live page sit beside it rather than at the foot of the report.
+        parts.push(`        <p>This answer covers IMF PortWatch data through ${escapeHtml(focus.observationEnd)}. For today's transit count and disruption score, see the ${trackedLink(`/chokepoints/${chokepointSlug}/`, `live ${escapeHtml(focus.portwatchName)} status page`, 'chokepoint-page', escapeHtml)}.</p>`);
         break;
       case 'live-handoff': {
         const dashboardUrl = absoluteUrl(baseUrl, `/dashboard?chokepoint=${report.focusChokepointId}`);
