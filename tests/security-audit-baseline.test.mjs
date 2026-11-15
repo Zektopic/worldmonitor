@@ -483,12 +483,29 @@ describe('security audit baseline', () => {
       assert.ok(atLeast(entry.version, '3.15.1'), `${label} js-yaml ${entry.version} is below the patched 3.15.1`);
     }
 
-    for (const [label, entry] of [
-      ['blog-site', blogLock.packages['node_modules/js-yaml']],
-      ['consumer-prices-core', cpcLock.packages['node_modules/js-yaml']],
-    ]) {
-      assert.ok(entry, `${label} js-yaml must be present`);
-      assert.ok(atLeast(entry.version, '4.3.1'), `${label} js-yaml ${entry.version} is below the patched 4.3.1`);
+    // Astro 7.4+ replaced js-yaml@^4.3.0 with yaml@^2.9.1, so blog-site may omit top-level js-yaml@4.
+    const blogTopLevelJsYaml = blogLock.packages['node_modules/js-yaml'];
+    if (blogTopLevelJsYaml) {
+      assert.ok(
+        atLeast(blogTopLevelJsYaml.version, '4.3.1'),
+        `blog-site js-yaml ${blogTopLevelJsYaml.version} is below the patched 4.3.1`,
+      );
+    }
+
+    const cpcJsYaml = cpcLock.packages['node_modules/js-yaml'];
+    assert.ok(cpcJsYaml, 'consumer-prices-core js-yaml must be present');
+    assert.ok(
+      atLeast(cpcJsYaml.version, '4.3.1'),
+      `consumer-prices-core js-yaml ${cpcJsYaml.version} is below the patched 4.3.1`,
+    );
+
+    for (const [pkgPath, entry] of Object.entries(blogLock.packages)) {
+      if (!pkgPath.endsWith('/js-yaml')) continue;
+      const minPatched = entry.version.startsWith('3.') ? '3.15.1' : '4.3.1';
+      assert.ok(
+        atLeast(entry.version, minPatched),
+        `blog-site ${pkgPath} ${entry.version} is below the patched ${minPatched}`,
+      );
     }
 
     // The helper must reject the lexicographic trap it exists to avoid.
